@@ -1,0 +1,22 @@
+{
+  "extends": ["plugin:prettier/recommended"],
+  "plugins": ["@babel", "prettier"],
+  "parser": "@babel/eslint-parser",
+  "env": {
+    "browser": true,
+    "es2020": true
+  },
+  "rules": {
+    "prettier/prettier": "error"
+  },
+  "parserOptions": {
+    "sourceType": "module",
+    "allowImportExportEverywhere": false,
+    "ecmaFeatures": {
+      "globalReturn": false
+    },
+    "babelOptions": {
+      "configFile": "./babel.config.json"
+    }
+  }
+}
