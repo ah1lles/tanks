@@ -5,10 +5,12 @@ import size from 'lodash/size'
 import pull from 'lodash/pull'
 
 export class Enemy extends Tank {
-  constructor(bonus, ...args) {
+  constructor(hardMode, bonus, ...args) {
     super(...args)
 
     this.bonus = bonus
+    this.type = 'enemy'
+    this.canTakeBonus = hardMode
     this.upgrade = 0
     this.maxUpgrade = 0
     this.deadlockDelay = 50
@@ -86,6 +88,8 @@ export class Enemy extends Tank {
   }
 
   update(dt, others, tiles) {
+    if (this.frozen) return
+
     super.update(dt, others, tiles)
 
     if (!this.checkFieldEnd()) {
@@ -117,8 +121,10 @@ export class Enemy extends Tank {
     }
   }
 
-  destroy() {
-    this.createBonus()
+  destroy(forceDestroy) {
+    if (!forceDestroy) {
+      this.createBonus()
+    }
     super.destroy()
   }
 }

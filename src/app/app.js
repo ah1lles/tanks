@@ -10,7 +10,7 @@ import {
   FIELD_END_Y,
   PLAYER_SPEED
 } from './constants.js'
-import { MAPS, TilesMap } from './maps.js'
+import { MAPS, TilesMap, A } from './maps.js'
 import { Player } from './player/player.js'
 import { Bullet } from './bullet/bullet.js'
 import { Explosion } from './explosion/explosion.js'
@@ -21,6 +21,9 @@ import map from 'lodash/map'
 import invokeMap from 'lodash/invokeMap'
 import sortBy from 'lodash/sortBy'
 import size from 'lodash/size'
+import find from 'lodash/find'
+import concat from 'lodash/concat'
+import difference from 'lodash/difference'
 
 export class App {
   constructor(ctx, dispatcher, options) {
@@ -41,6 +44,16 @@ export class App {
     this.bonuses = []
     this.bonusFactory = null
     this.enemyFactory = null
+    this.hardMode = false
+    this.freezeEntities = false
+    this.freezingLimit = 0
+    this.freezingTime = 0
+    this.bonusOwnerType = null
+    this.gainHeadquarters = false
+    this.chovelLimit = 0
+    this.chovelTime = 0
+    this.savedHeadquartersTiles = []
+    this.newHeadquartersTiles = []
     this.playersOptions = {
       0: {
         keys: { ArrowUp: 'Up', ArrowRight: 'Right', ArrowDown: 'Down', ArrowLeft: 'Left', Space: 'Attack' },
@@ -73,6 +86,9 @@ export class App {
     this.dispatcher.subscribe('createEnemy', e => this.handleEnemyCreation(e.data))
     this.dispatcher.subscribe('createBonus', e => this.handleBonusCreation())
     this.dispatcher.subscribe('playerDestroyed', e => this.handlePlayerDestroying())
+    this.dispatcher.subscribe('clockBonusActivated', e => this.handleClockBonusActivation(e.data))
+    this.dispatcher.subscribe('clockBonusActivated', e => this.handleClockBonusActivation(e.data))
+    this.dispatcher.subscribe('chovelBonusActivated', e => this.handleChovelBonusActivation(e.data))
 
     window.addEventListener('focus', () => {
       if (this.pause && !this.pausePressed) {
@@ -89,7 +105,7 @@ export class App {
   }
 
   start() {
-    this.enemyFactory = new EnemyFactory(this.playersCount > 1 ? 6 : 4)
+    this.enemyFactory = new EnemyFactory(this.playersCount > 1 ? 6 : 4, this.hardMode)
     this.bonusFactory = new BonusFactory()
     this.createTiles()
     this.createPlayers()
@@ -140,11 +156,91 @@ export class App {
   }
 
   handleEnemyCreation(data) {
+    if (data.bonus) {
+      this.bonuses = []
+    }
     this.enemies.push(data)
   }
 
   handleBonusCreation() {
-    this.bonuses.push(this.bonusFactory.create())
+    this.bonuses.push(this.bonusFactory.create(filter(this.tiles, { destroyed: false })))
+    console.log(this.bonuses)
+  }
+
+  handleClockBonusActivation({ limit, bonusOwnerType }) {
+    this.freezeEntities = true
+    this.freezingLimit = limit
+    this.bonusOwnerType = bonusOwnerType
+  }
+
+  updateFreezingTime(dt) {
+    if (!this.freezeEntities) return
+
+    this.freezingTime += dt
+
+    const entitiesName = this.bonusOwnerType === 'player' ? 'enemies' : 'players'
+
+    invokeMap(this[entitiesName], 'freezeTank')
+
+    if (this.freezingTime > this.freezingLimit) {
+      this.freezeEntities = false
+      this.freezingTime = 0
+      invokeMap(this[entitiesName], 'unfreezeTank')
+    }
+  }
+
+  compareTilesByPosition(tile, tilesPos) {
+    return !!find(tilesPos, t => {
+      return t.x === tile.x && t.y === tile.y
+    })
+  }
+
+  handleChovelBonusActivation({ limit }) {
+    const leftX = FIELD_START_X + TILE_SIZE * 11
+    const rightX = FIELD_START_X + TILE_SIZE * 14
+    const topY = FIELD_END_Y - TILE_SIZE * 3
+    const tilesAroundHeadquarters = [
+      { x: leftX, y: topY + TILE_SIZE * 2 },
+      { x: leftX, y: topY + TILE_SIZE },
+      { x: leftX, y: topY },
+      { x: leftX + TILE_SIZE, y: topY },
+      { x: leftX + TILE_SIZE * 2, y: topY },
+      { x: rightX, y: topY },
+      { x: rightX, y: topY + TILE_SIZE },
+      { x: rightX, y: topY + TILE_SIZE * 2 }
+    ]
+
+    if (!this.gainHeadquarters) {
+      this.savedHeadquartersTiles = filter(this.tiles, tile =>
+        this.compareTilesByPosition(tile, tilesAroundHeadquarters)
+      )
+    }
+
+    if (size(this.newHeadquartersTiles) > 0) {
+      this.tiles = difference(this.tiles, this.newHeadquartersTiles)
+    }
+
+    this.newHeadquartersTiles = map(tilesAroundHeadquarters, v => {
+      return new TilesMap[A].instant(v.x, v.y, TILE_SIZE, TILE_SIZE, TilesMap[A].sprites)
+    })
+    this.tiles = concat(difference(this.tiles, this.savedHeadquartersTiles), this.newHeadquartersTiles)
+    this.gainHeadquarters = true
+    this.chovelLimit += limit
+  }
+
+  updateGainHeadquartersTime(dt) {
+    if (!this.gainHeadquarters) return
+
+    this.chovelTime += dt
+
+    if (this.chovelTime > this.chovelLimit) {
+      this.gainHeadquarters = false
+      this.chovelTime = 0
+      this.chovelLimit = 0
+      this.tiles = concat(difference(this.tiles, this.newHeadquartersTiles), this.savedHeadquartersTiles)
+      this.savedHeadquartersTiles = []
+      this.newHeadquartersTiles = []
+    }
   }
 
   createPlayer(keys, lives, speed, x, y, width, height, sprites) {
@@ -234,6 +330,14 @@ export class App {
     )
   }
 
+  updateBonuses(dt) {
+    this.bonuses = filter(this.bonuses, { finished: false })
+    invokeMap(this.bonuses, 'update', dt, [
+      ...filter(this.enemies, { destroyed: false }),
+      ...filter(this.players, { destroyed: false })
+    ])
+  }
+
   renderMap() {
     this.ctx.fillStyle = '#747474'
     this.ctx.fillRect(0, 0, MAP_SIZE_X, MAP_SIZE_Y)
@@ -243,11 +347,14 @@ export class App {
   }
 
   update(dt) {
+    this.updateGainHeadquartersTime(dt)
+    this.updateFreezingTime(dt)
     this.updateTiles()
     this.updatePlayers(dt)
     this.updateEnemies(dt)
     this.updateExplosions(dt)
     this.updateBullets(dt)
+    this.updateBonuses(dt)
     this.enemyFactory.update(dt, this.enemies)
   }
 
@@ -261,7 +368,8 @@ export class App {
           ...filter(this.players, { destroyed: false }),
           ...this.enemies,
           ...this.bullets,
-          ...this.explosions
+          ...this.explosions,
+          ...this.bonuses
         ],
         e => e.zindex
       ),

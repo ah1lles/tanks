@@ -5,11 +5,11 @@ import { Tree } from './tile/tree.js'
 import { Water } from './tile/water.js'
 import { Ice } from './tile/ice.js'
 
-const B = 1
-const A = 2
-const T = 3
-const W = 4
-const I = 5
+export const B = 1
+export const A = 2
+export const T = 3
+export const W = 4
+export const I = 5
 
 export const TilesMap = {
   [B]: {

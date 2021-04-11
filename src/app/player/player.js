@@ -8,10 +8,11 @@ export class Player extends Tank {
   constructor(keys, lives, ...args) {
     super(...args)
 
+    this.type = 'player'
     this.keys = keys
     this.lives = lives
     this.direction = 'Up'
-    this.upgrade = 3
+    this.upgrade = 0
     this.maxUpgrade = 3
     this.keysPressed = {}
     this.appearing = false
@@ -19,6 +20,7 @@ export class Player extends Tank {
     this.restoreTime = 0
     this.restoreDelay = 50
     this.isOver = false
+    this.canTakeBonus = true
     this.startPositionX = this.x
     this.startPositionY = this.y
 
@@ -26,47 +28,13 @@ export class Player extends Tank {
     document.addEventListener('keyup', e => this.keyUpHandler(e.code))
   }
 
-  get idxSprite() {
-    return this.upgrade
+  get upgrade() {
+    return this.idxSprite
   }
 
-  set idxSprite(value) {
-    this.upgrade = value > this.maxUpgrade ? 0 : value
+  set upgrade(value) {
+    this.idxSprite = value > this.maxUpgrade ? 0 : value
   }
-
-  get dx() {
-    return this.imgPositions[this.direction]
-  }
-
-  get maxBullets() {
-    return this.idxSprite > 1 ? 2 : 1
-  }
-
-  set maxBullets(val) {}
-
-  get bulletType() {
-    return this.idxSprite > 0 ? 'fast' : 'slow'
-  }
-
-  set bulletType(val) {}
-
-  get bulletPiercing() {
-    return this.idxSprite > 2 ? true : false
-  }
-
-  set bulletPiercing(val) {}
-
-  get nextShootCoef() {
-    return this.upgrade > 1 ? 300 : 200
-  }
-
-  set nextShootCoef(val) {}
-
-  get dischargeCoef() {
-    return this.upgrade > 1 ? 220 : 180
-  }
-
-  set dischargeCoef(val) {}
 
   keyDownHandler(key) {
     if (!this.checkKey(key)) return
@@ -116,14 +84,18 @@ export class Player extends Tank {
     return includes(Object.keys(this.keys), key)
   }
 
-  changePosition(dt, others, tiles) {
+  increaseAmountOfLives() {
+    this.lives++
+  }
+
+  changePosition(...args) {
     if (!this.isPressedMovingKeys()) return
 
-    super.changePosition(dt, others, tiles)
+    super.changePosition(...args)
   }
 
   restorePlayer(dt) {
-    if (this.destroyed === true) {
+    if (this.destroyed === true && !this.isOver) {
       this.restoreTime += 100 * dt
 
       if (this.restoreTime > this.restoreDelay) {
@@ -150,7 +122,7 @@ export class Player extends Tank {
       this.dispatcher.dispatch('playerDestroyed')
     } else {
       this.lives--
-      this.idxSprite = 0
+      this.upgrade = 0
     }
   }
 }

@@ -8,14 +8,15 @@ import { Enemy4 } from './enemy4.js'
 import includes from 'lodash/includes'
 
 export class EnemyFactory {
-  constructor(maxLivingEnemies) {
+  constructor(maxLivingEnemies, hardMode) {
+    this.hardMode = hardMode
     this.creationDelay = 300
     this.creationTime = 300
     this.enemiesCount = 0
     this.currentEnemyIndex = 0
     this.level = 1
     this.maxEnemies = ENEMIES_TOTAL
-    this.maxLivingEnemies = maxLivingEnemies || 4
+    this.maxLivingEnemies = hardMode ? 6 : maxLivingEnemies || 4
     this.currentSpot = 1
     this.spots = {
       0: {
@@ -63,6 +64,7 @@ export class EnemyFactory {
       this.dispatcher.dispatch(
         'createEnemy',
         new this.enemiesClasses[enemy](
+          this.hardMode,
           includes(this.bonusTanks, this.currentEnemyIndex),
           enemy === 1 ? FAST_ENEMY_SPEED : SLOW_ENEMY_SPEED,
           this.spots[this.currentSpot].x,
@@ -79,9 +81,9 @@ export class EnemyFactory {
     }
   }
 
-  update(dt, enemies, players) {
+  update(dt, enemies) {
     if (enemies.length < this.maxLivingEnemies) {
-      this.creationTime += 100 * dt
+      this.creationTime += 120 * dt
       this.create()
     }
   }

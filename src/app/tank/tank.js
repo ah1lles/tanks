@@ -2,8 +2,7 @@ import { TILE_SIZE, SLOW_ENEMY_SPEED } from '../constants.js'
 import { Entity } from '../entity.js'
 import { Helper } from '../helper.js'
 import difference from 'lodash/difference'
-import map from 'lodash/map'
-import some from 'lodash/some'
+import find from 'lodash/find'
 import filter from 'lodash/filter'
 
 export class Tank extends Entity {
@@ -11,6 +10,7 @@ export class Tank extends Entity {
     super(...args)
 
     this.speed = speed || SLOW_ENEMY_SPEED
+    this.type = ''
     this._x = this.x
     this._y = this.y
     this.direction = 'Down'
@@ -20,6 +20,7 @@ export class Tank extends Entity {
       Down: 2,
       Left: 3
     }
+    this.upgrade = 0
     this.idxSprite = 0
     this.shootDelay = 50
     this.nextShootTime = 50
@@ -29,17 +30,49 @@ export class Tank extends Entity {
     this.bulletsCount = 0
     this.maxBullets = 1
     this.bulletType = 'slow'
+    this.canTakeBonus = false
     this.bulletPiercing = false
     this.destroyed = false
     this.destroyable = true
     this.passable = false
     this.appearing = true
+    this.frozen = false
     this.zindex = 1
   }
 
   get dx() {
     return this.imgPositions[this.direction]
   }
+
+  get maxBullets() {
+    return this.upgrade > 1 ? 2 : 1
+  }
+
+  set maxBullets(val) {}
+
+  get bulletType() {
+    return this.upgrade > 0 ? 'fast' : 'slow'
+  }
+
+  set bulletType(val) {}
+
+  get bulletPiercing() {
+    return this.upgrade > 2 ? true : false
+  }
+
+  set bulletPiercing(val) {}
+
+  get nextShootCoef() {
+    return this.upgrade > 1 ? 300 : 200
+  }
+
+  set nextShootCoef(val) {}
+
+  get dischargeCoef() {
+    return this.upgrade > 1 ? 220 : 180
+  }
+
+  set dischargeCoef(val) {}
 
   canShoot() {
     return (
@@ -146,11 +179,7 @@ export class Tank extends Entity {
   }
 
   checkTilesCollision(tiles) {
-    return some(
-      map(tiles, tile => {
-        return Helper.collision(tile, this)
-      })
-    )
+    return !!find(tiles, tile => Helper.collision(tile, this))
   }
 
   checkOtherTanksCollision(others, posDiff) {
@@ -159,26 +188,46 @@ export class Tank extends Entity {
     let r = this.x + this.width
     let b = this.y + this.height
 
-    return some(
-      map(filter(difference(others, [this]), { appearing: false }), other => {
-        if (this.direction === 'Up') {
-          return this.checkCollission(x, y - posDiff * 2, r, b, other)
-        }
-        if (this.direction === 'Right') {
-          return this.checkCollission(x + posDiff * 2, y, r, b, other)
-        }
-        if (this.direction === 'Left') {
-          return this.checkCollission(x - posDiff * 2, y, r, b, other)
-        }
-        if (this.direction === 'Down') {
-          return this.checkCollission(x, y + posDiff * 2, r, b, other)
-        }
-      })
-    )
+    return !!find(filter(difference(others, [this]), { appearing: false }), other => {
+      if (this.direction === 'Up') {
+        return this.checkCollission(x, y - posDiff * 2, r, b, other)
+      }
+      if (this.direction === 'Right') {
+        return this.checkCollission(x + posDiff * 2, y, r, b, other)
+      }
+      if (this.direction === 'Left') {
+        return this.checkCollission(x - posDiff * 2, y, r, b, other)
+      }
+      if (this.direction === 'Down') {
+        return this.checkCollission(x, y + posDiff * 2, r, b, other)
+      }
+    })
   }
 
   reactOnCollidion(dt) {
     this.balancePosition()
+  }
+
+  upgradeTank() {
+    if (this.canTakeBonus) {
+      this.upgrade++
+    }
+  }
+
+  maxUpgradeTank() {
+    if (this.canTakeBonus) {
+      this.upgrade = 3
+    }
+  }
+
+  increaseAmountOfLives() {}
+
+  freezeTank() {
+    this.frozen = true
+  }
+
+  unfreezeTank() {
+    this.frozen = false
   }
 
   handleOtherTankCollision(others, posDiff) {
@@ -234,6 +283,8 @@ export class Tank extends Entity {
   }
 
   update(dt, others, tiles) {
+    if (this.frozen) return
+
     this.changePosition(dt, others, tiles)
     this.nextShootTime += this.nextShootCoef * dt
     this.dischargeTime += this.dischargeCoef * dt
