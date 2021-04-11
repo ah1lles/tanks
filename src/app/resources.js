@@ -5,7 +5,15 @@ import tank_4 from '../assets/tank_4.png'
 import enemy_1 from '../assets/enemy_1.png'
 import enemy_2 from '../assets/enemy_2.png'
 import enemy_3 from '../assets/enemy_3.png'
-import enemy_4 from '../assets/enemy_4.png'
+import enemy_4_grade_1 from '../assets/enemy_4_grade_1.png'
+import enemy_4_grade_2 from '../assets/enemy_4_grade_2.png'
+import enemy_4_grade_3 from '../assets/enemy_4_grade_3.png'
+import enemy_4_grade_4 from '../assets/enemy_4_grade_4.png'
+import enemy_1_bonus from '../assets/enemy_1_bonus.png'
+import enemy_2_bonus from '../assets/enemy_2_bonus.png'
+import enemy_3_bonus from '../assets/enemy_3_bonus.png'
+import enemy_4_bonus from '../assets/enemy_4_bonus.png'
+import bonuses from '../assets/bonuses.png'
 import bricks from '../assets/bricks.png'
 import armor from '../assets/armor.png'
 import tree from '../assets/tree.png'
@@ -30,7 +38,15 @@ export const resources = {
   enemy_1,
   enemy_2,
   enemy_3,
-  enemy_4,
+  enemy_4_grade_1,
+  enemy_4_grade_2,
+  enemy_4_grade_3,
+  enemy_4_grade_4,
+  enemy_1_bonus,
+  enemy_2_bonus,
+  enemy_3_bonus,
+  enemy_4_bonus,
+  bonuses,
   bricks,
   armor,
   tree,

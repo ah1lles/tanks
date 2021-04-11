@@ -33,10 +33,10 @@ export class EnemyFactory {
       }
     }
     this.enemiesSprites = {
-      0: ['enemy_1'],
-      1: ['enemy_2'],
-      2: ['enemy_3'],
-      3: ['enemy_4']
+      0: ['enemy_1', 'enemy_1_bonus'],
+      1: ['enemy_2', 'enemy_2_bonus'],
+      2: ['enemy_3', 'enemy_3_bonus'],
+      3: ['enemy_4_grade_4', 'enemy_4_grade_3', 'enemy_4_grade_2', 'enemy_4_grade_1', 'enemy_4_bonus']
     }
     this.bonusTanks = [3, 10, 17]
     this.levelEnemiesSequence = {
