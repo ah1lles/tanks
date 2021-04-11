@@ -45,7 +45,8 @@ export class Tank extends Entity {
     return (
       this.bulletsCount < this.maxBullets &&
       this.nextShootTime >= this.shootDelay &&
-      this.dischargeTime >= this.shootDelay
+      this.dischargeTime >= this.shootDelay &&
+      !this.destroyed
     )
   }
 
@@ -60,6 +61,7 @@ export class Tank extends Entity {
     this.dispatcher.dispatch('createBullet', {
       ...this.getBulletStartPosition(),
       host: this,
+      from: this.bulletFrom,
       type: this.bulletType,
       piercing: this.bulletPiercing,
       direction: this.direction

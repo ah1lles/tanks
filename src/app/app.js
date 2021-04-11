@@ -11,17 +11,16 @@ import {
   PLAYER_SPEED
 } from './constants.js'
 import { MAPS, TilesMap } from './maps.js'
-import { Helper } from './helper.js'
 import { Player } from './player/player.js'
 import { Bullet } from './bullet/bullet.js'
 import { Explosion } from './explosion/explosion.js'
+import { BonusFactory } from './bonus/bonus-factory.js'
 import { EnemyFactory } from './enemies/enemy-factory.js'
 import filter from 'lodash/filter'
 import map from 'lodash/map'
-import some from 'lodash/some'
 import invokeMap from 'lodash/invokeMap'
-import difference from 'lodash/difference'
 import sortBy from 'lodash/sortBy'
+import size from 'lodash/size'
 
 export class App {
   constructor(ctx, dispatcher, options) {
@@ -39,28 +38,49 @@ export class App {
     this.bullets = []
     this.explosions = []
     this.enemies = []
+    this.bonuses = []
+    this.bonusFactory = null
     this.enemyFactory = null
+    this.playersOptions = {
+      0: {
+        keys: { ArrowUp: 'Up', ArrowRight: 'Right', ArrowDown: 'Down', ArrowLeft: 'Left', Space: 'Attack' },
+        lives: this.options.playerLives,
+        speed: PLAYER_SPEED,
+        x: FIELD_START_X + TILE_SIZE * 9,
+        y: FIELD_END_Y - TILE_SIZE * 2,
+        width: TILE_SIZE * 2,
+        height: TILE_SIZE * 2,
+        sprites: ['tank_1', 'tank_2', 'tank_3', 'tank_4']
+      },
+      1: {
+        keys: { KeyW: 'Up', KeyD: 'Right', KeyS: 'Down', KeyA: 'Left', KeyZ: 'Attack' },
+        lives: this.options.playerLives,
+        speed: PLAYER_SPEED,
+        x: FIELD_START_X + TILE_SIZE * 9 + 6 * TILE_SIZE,
+        y: FIELD_END_Y - TILE_SIZE * 2,
+        width: TILE_SIZE * 2,
+        height: TILE_SIZE * 2,
+        sprites: ['tank_1', 'tank_2', 'tank_3', 'tank_4']
+      }
+    }
   }
 
   init() {
-    document.addEventListener('keydown', e => this.keyDownHandler(e.key))
-    document.addEventListener('keyup', e => this.keyUpHandler(e.key))
+    document.addEventListener('keydown', e => this.keyDownHandler(e.code))
 
     this.dispatcher.subscribe('createBullet', e => this.handleBulletCreation(e.data))
     this.dispatcher.subscribe('createExplosion', e => this.handleExplosionCreation(e.data))
     this.dispatcher.subscribe('createEnemy', e => this.handleEnemyCreation(e.data))
+    this.dispatcher.subscribe('createBonus', e => this.handleBonusCreation())
     this.dispatcher.subscribe('playerDestroyed', e => this.handlePlayerDestroying())
-    // this.dispatcher.subscribe('destroyEmenies', e => this.handleEnemyDestroying())
 
     window.addEventListener('focus', () => {
-      console.log('focus')
       if (this.pause && !this.pausePressed) {
         this.pauseGame(false)
       }
     })
 
     window.addEventListener('blur', () => {
-      console.log('blur')
       if (!this.pause) {
         this.pauseGame(true)
       }
@@ -70,6 +90,7 @@ export class App {
 
   start() {
     this.enemyFactory = new EnemyFactory(this.playersCount > 1 ? 6 : 4)
+    this.bonusFactory = new BonusFactory()
     this.createTiles()
     this.createPlayers()
     this.lastTime = Date.now()
@@ -79,30 +100,21 @@ export class App {
   pauseGame(bool) {
     this.pause = bool
     if (!this.pause) {
-      console.log('START LOOP')
       this.lastTime = Date.now()
       this.loop()
     }
-    console.log(this.pause, 'pause')
   }
 
   keyDownHandler(key) {
-    if (key === 'p') {
+    if (key === 'KeyP') {
       this.pausePressed = !this.pausePressed
       this.pauseGame(this.pausePressed)
     }
   }
 
-  keyUpHandler(key) {
-    // console.log(key)
-  }
-
   handlePlayerDestroying() {
-    this.players = filter(this.players, { destroyed: false })
-
-    if (!this.players.length) {
+    if (size(filter(this.players, { isOver: true })) === this.playersCount) {
       this.gameOver = true
-      // this.keyDownHandler('p')
     }
   }
 
@@ -110,6 +122,7 @@ export class App {
     this.bullets.push(
       this.createBullet(
         data.host,
+        data.from,
         data.type,
         data.piercing,
         data.direction,
@@ -128,41 +141,21 @@ export class App {
 
   handleEnemyCreation(data) {
     this.enemies.push(data)
-    console.log(this.enemies, data)
+  }
+
+  handleBonusCreation() {
+    this.bonuses.push(this.bonusFactory.create())
+  }
+
+  createPlayer(keys, lives, speed, x, y, width, height, sprites) {
+    return new Player(keys, lives, speed, x, y, width, height, sprites)
   }
 
   createPlayers() {
-    const blockSize = TILE_SIZE * 2
-    const playerStartX = FIELD_START_X + TILE_SIZE * 9
-    const playerStartY = FIELD_END_Y - blockSize
-
-    this.players.push(
-      new Player(
-        { ArrowUp: 'Up', ArrowRight: 'Right', ArrowDown: 'Down', ArrowLeft: 'Left', ' ': 'Attack' },
-        this.options.playerLives,
-        PLAYER_SPEED,
-        playerStartX,
-        playerStartY,
-        blockSize,
-        blockSize,
-        ['tank_1', 'tank_2', 'tank_3', 'tank_4']
-      )
-    )
-
-    if (this.playersCount === 2) {
-      this.players.push(
-        new Player(
-          { w: 'Up', d: 'Right', s: 'Down', a: 'Left', z: 'Attack' },
-          this.options.playerLives,
-          PLAYER_SPEED,
-          playerStartX + 6 * TILE_SIZE,
-          playerStartY,
-          blockSize,
-          blockSize,
-          ['tank_1', 'tank_2', 'tank_3', 'tank_4']
-        )
-      )
-    }
+    this.players = map(Array(this.playersCount === 2 || this.playersCount === 1 ? this.playersCount : 1), (v, i) => {
+      const opts = this.playersOptions[i]
+      return this.createPlayer(opts.keys, opts.lives, opts.speed, opts.x, opts.y, opts.width, opts.height, opts.sprites)
+    })
   }
 
   createTiles() {
@@ -184,17 +177,13 @@ export class App {
     })
   }
 
-  createBullet(host, type, piercing, direction, x, y, width, height, sprites) {
-    return new Bullet(host, type, piercing, direction, x, y, width, height, sprites)
+  createBullet(host, from, type, piercing, direction, x, y, width, height, sprites) {
+    return new Bullet(host, from, type, piercing, direction, x, y, width, height, sprites)
   }
 
   createExplosion(framesCount, x, y, width, height, sprites) {
     return new Explosion(framesCount, x, y, width, height, sprites)
   }
-
-  // createEnemy(framesCount, x, y, width, height, sprites) {
-  //   return new Explosion(framesCount, x, y, width, height, sprites)
-  // }
 
   updateTiles() {
     this.tiles = filter(this.tiles, { destroyed: false })
@@ -206,108 +195,43 @@ export class App {
   }
 
   updatePlayers(dt) {
-    // const collisionPlayers = filter(this.players, player => {
-    //   return some(
-    //     map(filter(this.tiles, { passable: false, destroyed: false }), tile => {
-    //       return Helper.collision(tile, player)
-    //     })
-    //   )
-    // })
-
-    // invokeMap(collisionPlayers, 'balancePosition')
     invokeMap(
       this.players,
       'update',
       dt,
-      [...this.enemies, ...this.players],
+      [...this.enemies, ...filter(this.players, { destroyed: false })],
       filter(this.tiles, { passable: false, destroyed: false })
     )
-    // invokeMap(this.players, 'update', dt)
   }
 
   updateBullets(dt) {
-    const tiles = filter(this.tiles, { passable: false, destroyable: true, destroyed: false })
-
-    this.bullets.forEach(bullet => {
-      if (bullet.destroyed) return
-
-      const isInField = bullet.checkFieldEnd()
-      let shouldDestroyBullet = false
-      if (isInField) {
-        tiles.forEach(tile => {
-          const collide = Helper.collision(tile, bullet)
-
-          if (collide) {
-            tile.destroy(bullet)
-            // bullet.destroy()
-            shouldDestroyBullet = true
-          }
-        })
-
-        if (bullet.host.bulletFrom === 'player') {
-          filter(difference(this.bullets, [bullet]), b => b.host.bulletFrom !== 'player').forEach(b => {
-            if (Helper.collision(b, bullet)) {
-              b.destroy()
-              shouldDestroyBullet = true
-            }
-          })
-          filter(this.enemies, { destroyed: false }).forEach(enemy => {
-            if (Helper.collision(enemy, bullet)) {
-              enemy.destroy()
-              shouldDestroyBullet = true
-            }
-          })
-        }
-
-        if (bullet.host.bulletFrom === 'enemy') {
-          // console.log('Enemy destroyed player')
-          filter(this.players, { destroyed: false }).forEach(player => {
-            if (Helper.collision(player, bullet)) {
-              player.destroy(dt)
-              shouldDestroyBullet = true
-            }
-          })
-        }
-      } else {
-        shouldDestroyBullet = true
-        // bullet.destroy()
-      }
-
-      if (shouldDestroyBullet) {
-        bullet.destroy()
-      }
-    })
-
     this.bullets = filter(this.bullets, bullet => {
       if (bullet.destroyed) {
-        bullet?.host?.removeBullet()
+        bullet.host?.removeBullet()
       }
       return !bullet.destroyed
     })
 
+    invokeMap(
+      this.bullets,
+      'update',
+      this.bullets,
+      filter(this.tiles, { passable: false, destroyable: true, destroyed: false }),
+      this.enemies,
+      filter(this.players, { destroyed: false })
+    )
     invokeMap(this.bullets, 'changePosition', dt)
   }
 
   updateEnemies(dt) {
-    // const collisionTiles = filter(this.enemies, enemy => {
-    //   return some(
-    //     map(filter(this.tiles, { passable: false, destroyed: false }), tile => {
-    //       return Helper.collision(tile, enemy)
-    //     })
-    //   )
-    // })
-    // invokeMap(collisionTiles, 'balancePosition')
-    // invokeMap(difference(this.enemies, collisionTiles), 'changePosition', dt, [...this.enemies, ...this.players])
-    // invokeMap(this.enemies, 'update', dt)
     this.enemies = filter(this.enemies, { destroyed: false })
     invokeMap(
       this.enemies,
       'update',
       dt,
-      [...this.enemies, ...this.players],
+      [...this.enemies, ...filter(this.players, { destroyed: false })],
       filter(this.tiles, { passable: false, destroyed: false })
     )
-    // invokeMap(this.enemies, 'update', dt)
   }
 
   renderMap() {
@@ -322,8 +246,8 @@ export class App {
     this.updateTiles()
     this.updatePlayers(dt)
     this.updateEnemies(dt)
-    this.updateBullets(dt)
     this.updateExplosions(dt)
+    this.updateBullets(dt)
     this.enemyFactory.update(dt, this.enemies)
   }
 
@@ -358,8 +282,6 @@ export class App {
 
       if (!this.pause) {
         this.loop()
-      } else {
-        console.log('STOP LOOP')
       }
     })
   }

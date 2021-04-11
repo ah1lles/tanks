@@ -18,11 +18,12 @@ export class Player extends Tank {
     this.bulletFrom = 'player'
     this.restoreTime = 0
     this.restoreDelay = 50
+    this.isOver = false
     this.startPositionX = this.x
     this.startPositionY = this.y
 
-    document.addEventListener('keydown', e => this.keyDownHandler(e.key))
-    document.addEventListener('keyup', e => this.keyUpHandler(e.key))
+    document.addEventListener('keydown', e => this.keyDownHandler(e.code))
+    document.addEventListener('keyup', e => this.keyUpHandler(e.code))
   }
 
   get idxSprite() {
@@ -108,7 +109,6 @@ export class Player extends Tank {
   reactOnCollidion(dt) {
     if (this.isPressedMovingKeys()) return
 
-    console.log('need to balance')
     super.reactOnCollidion(dt)
   }
 
@@ -146,6 +146,7 @@ export class Player extends Tank {
     super.destroy()
 
     if (this.lives === 0) {
+      this.isOver = true
       this.dispatcher.dispatch('playerDestroyed')
     } else {
       this.lives--

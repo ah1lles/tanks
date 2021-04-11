@@ -15,8 +15,7 @@ export class EnemyFactory {
     this.currentEnemyIndex = 0
     this.level = 1
     this.maxEnemies = ENEMIES_TOTAL
-    // this.maxLivingEnemies = maxLivingEnemies || 4
-    this.maxLivingEnemies = 4
+    this.maxLivingEnemies = maxLivingEnemies || 4
     this.currentSpot = 1
     this.spots = {
       0: {
@@ -48,14 +47,6 @@ export class EnemyFactory {
       2: Enemy3,
       3: Enemy4
     }
-    // this.levelEnemiesCount = {
-    //   1: {
-    //     0: 18,
-    //     1: 2,
-    //     2: 0,
-    //     3: 0
-    //   }
-    // }
   }
 
   get assetsLoader() {
@@ -67,12 +58,7 @@ export class EnemyFactory {
   }
 
   create() {
-    if (
-      this.creationTime > this.creationDelay &&
-      // this.enemiesCount < this.maxLivingEnemies &&
-      this.currentEnemyIndex < this.maxEnemies
-    ) {
-      console.log('CREATE ENEMY')
+    if (this.creationTime > this.creationDelay && this.currentEnemyIndex < this.maxEnemies) {
       const enemy = this.levelEnemiesSequence[this.level][this.currentEnemyIndex]
       this.dispatcher.dispatch(
         'createEnemy',
@@ -88,18 +74,13 @@ export class EnemyFactory {
       )
 
       this.currentEnemyIndex++
-      console.log(this.currentEnemyIndex, 'this.currentEnemyIndex')
-      console.log(this.maxEnemies, 'this.maxEnemies')
-      // this.enemiesCount++
       this.currentSpot = this.currentSpot < 2 ? this.currentSpot + 1 : 0
       this.creationTime = 0
     }
   }
 
-  update(dt, enemies) {
-    // console.log('update')
+  update(dt, enemies, players) {
     if (enemies.length < this.maxLivingEnemies) {
-      // console.log('Create enemy')
       this.creationTime += 100 * dt
       this.create()
     }

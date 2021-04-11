@@ -9,6 +9,8 @@ export class Enemy extends Tank {
     super(...args)
 
     this.bonus = bonus
+    this.upgrade = 0
+    this.maxUpgrade = 0
     this.deadlockDelay = 50
     this.deadlockTime = 0
     this.movingDelay = 200
@@ -16,6 +18,18 @@ export class Enemy extends Tank {
     this.shootingDelay = 50
     this.shootingTime = 50
     this.bulletFrom = 'enemy'
+    this.bonusAnimationDelay = 50
+    this.bonusAnimationTime = 0
+    this.idxBonusSprite = this.sprites.length - 1
+    this.showBonusSprite = false
+  }
+
+  get idxSprite() {
+    return this.showBonusSprite && this.bonus ? this.idxBonusSprite : this.upgrade
+  }
+
+  set idxSprite(value) {
+    this.upgrade = value
   }
 
   generateChanceOfChangingDirection() {
@@ -27,14 +41,14 @@ export class Enemy extends Tank {
   }
 
   shoutingDecision() {
-    if (this.generateChanceOfShooting() < 3) {
+    if (this.generateChanceOfShooting() < 4) {
       this.shoot()
       this.shootingTime = 0
     }
   }
 
   determineRandomDirection() {
-    if (this.generateChanceOfChangingDirection() < 10) {
+    if (this.generateChanceOfChangingDirection() < 5) {
       this.changeDirection(this.getNewPosition())
       this.deadlockTime = 0
       this.movingTime = 0
@@ -44,6 +58,13 @@ export class Enemy extends Tank {
   getNewPosition() {
     const directionKeys = pull(keys(this.imgPositions), this.direction)
     return directionKeys[random(size(directionKeys) - 1)]
+  }
+
+  createBonus() {
+    if (this.bonus) {
+      this.bonus = false
+      this.dispatcher.dispatch('createBonus')
+    }
   }
 
   tankIsLocked() {
@@ -85,10 +106,19 @@ export class Enemy extends Tank {
     if (this.shootingTime > this.shootingDelay) {
       this.shoutingDecision()
     }
+
+    if (this.bonus) {
+      this.bonusAnimationTime += 200 * dt
+
+      if (this.bonusAnimationTime > this.bonusAnimationDelay) {
+        this.bonusAnimationTime = 0
+        this.showBonusSprite = !this.showBonusSprite
+      }
+    }
   }
 
   destroy() {
+    this.createBonus()
     super.destroy()
-    // this.dispatcher.dispatch('destroyEmenies')
   }
 }

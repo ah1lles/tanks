@@ -1,12 +1,17 @@
 import { SLOW_BULLET_SPEED, FAST_BULLET_SPEED, TILE_SIZE } from '../constants.js'
 import { Entity } from '../entity.js'
 import { Helper } from '../helper.js'
+import some from 'lodash/some'
+import map from 'lodash/map'
+import filter from 'lodash/filter'
+import difference from 'lodash/difference'
 
 export class Bullet extends Entity {
-  constructor(host, type, piercing, direction = 'Up', ...args) {
+  constructor(host, from, type, piercing, direction = 'Up', ...args) {
     super(...args)
 
     this.host = host
+    this.from = from
     this.type = type
     this.piercing = piercing
     this.direction = direction
@@ -35,10 +40,6 @@ export class Bullet extends Entity {
   }
 
   changePosition(dt) {
-    if (!this.checkFieldEnd()) {
-      this.destroy()
-    }
-
     switch (this.direction) {
       case 'Up':
         this.y -= this.speed * dt
@@ -57,9 +58,61 @@ export class Bullet extends Entity {
     }
   }
 
+  getOtherBullets(bullets) {
+    return filter(difference(bullets, [this]), b => b.from !== this.from)
+  }
+
+  checkOtherBulletsCollision(bullets) {
+    return some(
+      map(bullets, b => {
+        return Helper.collision(b, this)
+      })
+    )
+  }
+
+  checkItemsCollision(list) {
+    return some(
+      map(list, item => {
+        const collide = Helper.collision(item, this)
+
+        if (collide) {
+          item.destroy(this)
+        }
+        return collide
+      })
+    )
+  }
+
+  update(bullets, tiles, enemies, players) {
+    let shouldDestroyBullet = false
+
+    if (this.checkFieldEnd()) {
+      if (this.checkItemsCollision(tiles)) {
+        shouldDestroyBullet = true
+      }
+
+      if (this.checkOtherBulletsCollision(this.getOtherBullets(bullets))) {
+        shouldDestroyBullet = true
+      } else {
+        if (this.from === 'player' && this.checkItemsCollision(enemies)) {
+          shouldDestroyBullet = true
+        }
+
+        if (this.from === 'enemy' && this.checkItemsCollision(players)) {
+          shouldDestroyBullet = true
+        }
+      }
+    } else {
+      shouldDestroyBullet = true
+    }
+
+    if (shouldDestroyBullet) {
+      this.destroy()
+    }
+  }
+
   destroy() {
     super.destroy()
-    // this?.host?.removeBullet()
     this.dispatcher.dispatch('createExplosion', {
       framesCount: 8,
       x: this.x - this.width * 1.5,
