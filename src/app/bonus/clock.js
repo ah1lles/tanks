@@ -1,11 +1,11 @@
+import { CLOCK_DURATION } from '../constants.js'
 import { Bonus } from './bonus.js'
-import invokeMap from 'lodash/invokeMap'
 
 export class Clock extends Bonus {
   constructor(...args) {
     super(...args)
 
-    this.freezeLimit = 10 // seconds
+    this.freezeLimit = CLOCK_DURATION
   }
 
   setBunusEffect(item, others) {

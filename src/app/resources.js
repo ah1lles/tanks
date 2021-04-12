@@ -27,6 +27,7 @@ import bullet from '../assets/bullet.png'
 import headquarters from '../assets/headquarters.png'
 import explosion from '../assets/explosion.png'
 import explosion2 from '../assets/explosion2.png'
+import bonus_animation from '../assets/bonus_animation.png'
 
 export const resources = {
   tank_1,
@@ -57,5 +58,6 @@ export const resources = {
   bullet,
   headquarters,
   explosion,
-  explosion2
+  explosion2,
+  bonus_animation
 }

@@ -8,7 +8,7 @@ export class Bonus extends Entity {
     super(...args)
 
     this.idxOfSprite = idxOfSprite
-    this.animationDelay = 50
+    this.animationDelay = 0.5
     this.animationTime = 0
     this.idxSpriteTansparent = idxOfSpriteTransparent
     this.showSprite = false
@@ -34,7 +34,7 @@ export class Bonus extends Entity {
   setBunusEffect() {}
 
   update(dt, others) {
-    this.animationTime += 200 * dt
+    this.animationTime += dt
 
     if (this.animationTime > this.animationDelay) {
       this.animationTime = 0

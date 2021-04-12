@@ -8,14 +8,16 @@ import {
   FIELD_SIZE_X,
   FIELD_SIZE_Y,
   FIELD_END_Y,
-  PLAYER_SPEED
+  PLAYER_SPEED,
+  PLAYER_SPAWN_PROTECTION
 } from './constants.js'
 import { MAPS, TilesMap, A } from './maps.js'
 import { Player } from './player/player.js'
 import { Bullet } from './bullet/bullet.js'
-import { Explosion } from './explosion/explosion.js'
 import { BonusFactory } from './bonus/bonus-factory.js'
 import { EnemyFactory } from './enemies/enemy-factory.js'
+import { Animation } from './animation/animation.js'
+import { HelmetOverlay } from './bonus/helmet-overlay.js'
 import filter from 'lodash/filter'
 import map from 'lodash/map'
 import invokeMap from 'lodash/invokeMap'
@@ -54,12 +56,13 @@ export class App {
     this.chovelTime = 0
     this.savedHeadquartersTiles = []
     this.newHeadquartersTiles = []
+    this.helmetOverlays = []
     this.playersOptions = {
       0: {
         keys: { ArrowUp: 'Up', ArrowRight: 'Right', ArrowDown: 'Down', ArrowLeft: 'Left', Space: 'Attack' },
         lives: this.options.playerLives,
         speed: PLAYER_SPEED,
-        x: FIELD_START_X + TILE_SIZE * 9,
+        x: FIELD_START_X + TILE_SIZE * 8,
         y: FIELD_END_Y - TILE_SIZE * 2,
         width: TILE_SIZE * 2,
         height: TILE_SIZE * 2,
@@ -69,7 +72,7 @@ export class App {
         keys: { KeyW: 'Up', KeyD: 'Right', KeyS: 'Down', KeyA: 'Left', KeyZ: 'Attack' },
         lives: this.options.playerLives,
         speed: PLAYER_SPEED,
-        x: FIELD_START_X + TILE_SIZE * 9 + 6 * TILE_SIZE,
+        x: FIELD_START_X + TILE_SIZE * 16,
         y: FIELD_END_Y - TILE_SIZE * 2,
         width: TILE_SIZE * 2,
         height: TILE_SIZE * 2,
@@ -89,6 +92,7 @@ export class App {
     this.dispatcher.subscribe('clockBonusActivated', e => this.handleClockBonusActivation(e.data))
     this.dispatcher.subscribe('clockBonusActivated', e => this.handleClockBonusActivation(e.data))
     this.dispatcher.subscribe('chovelBonusActivated', e => this.handleChovelBonusActivation(e.data))
+    this.dispatcher.subscribe('helmetBonusActivated', e => this.handleHelmetBonusActivation(e.data))
 
     window.addEventListener('focus', () => {
       if (this.pause && !this.pausePressed) {
@@ -109,6 +113,7 @@ export class App {
     this.bonusFactory = new BonusFactory()
     this.createTiles()
     this.createPlayers()
+    this.startPlayerSpawnProtection()
     this.lastTime = Date.now()
     this.loop()
   }
@@ -243,6 +248,20 @@ export class App {
     }
   }
 
+  startPlayerSpawnProtection() {
+    this.players.forEach(player =>
+      this.handleHelmetBonusActivation({ entity: player, duration: PLAYER_SPAWN_PROTECTION })
+    )
+  }
+
+  handleHelmetBonusActivation({ entity, duration }) {
+    this.helmetOverlays.push(
+      new HelmetOverlay(entity, 3, null, true, duration, entity.x, entity.y, entity.width, entity.height, [
+        'bonus_animation'
+      ])
+    )
+  }
+
   createPlayer(keys, lives, speed, x, y, width, height, sprites) {
     return new Player(keys, lives, speed, x, y, width, height, sprites)
   }
@@ -278,7 +297,7 @@ export class App {
   }
 
   createExplosion(framesCount, x, y, width, height, sprites) {
-    return new Explosion(framesCount, x, y, width, height, sprites)
+    return new Animation(framesCount, null, false, 0, x, y, width, height, sprites)
   }
 
   updateTiles() {
@@ -338,6 +357,11 @@ export class App {
     ])
   }
 
+  updateHelmetOverlays(dt) {
+    this.helmetOverlays = filter(this.helmetOverlays, { finished: false })
+    invokeMap(this.helmetOverlays, 'update', dt)
+  }
+
   renderMap() {
     this.ctx.fillStyle = '#747474'
     this.ctx.fillRect(0, 0, MAP_SIZE_X, MAP_SIZE_Y)
@@ -355,6 +379,7 @@ export class App {
     this.updateExplosions(dt)
     this.updateBullets(dt)
     this.updateBonuses(dt)
+    this.updateHelmetOverlays(dt)
     this.enemyFactory.update(dt, this.enemies)
   }
 
@@ -369,7 +394,8 @@ export class App {
           ...this.enemies,
           ...this.bullets,
           ...this.explosions,
-          ...this.bonuses
+          ...this.bonuses,
+          ...this.helmetOverlays
         ],
         e => e.zindex
       ),

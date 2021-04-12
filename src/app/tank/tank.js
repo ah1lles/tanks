@@ -37,6 +37,8 @@ export class Tank extends Entity {
     this.passable = false
     this.appearing = true
     this.frozen = false
+    this.indestructible = false
+    this.helmetsCount = 0
     this.zindex = 1
   }
 
@@ -63,7 +65,7 @@ export class Tank extends Entity {
   set bulletPiercing(val) {}
 
   get nextShootCoef() {
-    return this.upgrade > 1 ? 300 : 200
+    return this.upgrade > 1 ? 300 : 250
   }
 
   set nextShootCoef(val) {}
@@ -228,6 +230,22 @@ export class Tank extends Entity {
 
   unfreezeTank() {
     this.frozen = false
+  }
+
+  makeTankIndestructible() {
+    this.helmetsCount++
+
+    if (this.helmetsCount > 0) {
+      this.indestructible = true
+    }
+  }
+
+  makeTankDestructible() {
+    this.helmetsCount = this.helmetsCount > 0 ? this.helmetsCount - 1 : 0
+
+    if (this.helmetsCount === 0) {
+      this.indestructible = false
+    }
   }
 
   handleOtherTankCollision(others, posDiff) {

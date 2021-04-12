@@ -1,4 +1,4 @@
-import { TILE_SIZE } from '../constants.js'
+import { PLAYER_SPAWN_PROTECTION } from '../constants.js'
 import { Tank } from '../tank/tank.js'
 import some from 'lodash/some'
 import values from 'lodash/values'
@@ -18,7 +18,7 @@ export class Player extends Tank {
     this.appearing = false
     this.bulletFrom = 'player'
     this.restoreTime = 0
-    this.restoreDelay = 50
+    this.restoreDelay = 1
     this.isOver = false
     this.canTakeBonus = true
     this.startPositionX = this.x
@@ -96,7 +96,7 @@ export class Player extends Tank {
 
   restorePlayer(dt) {
     if (this.destroyed === true && !this.isOver) {
-      this.restoreTime += 100 * dt
+      this.restoreTime += dt
 
       if (this.restoreTime > this.restoreDelay) {
         this.appearing = true
@@ -104,6 +104,8 @@ export class Player extends Tank {
         this.x = this.startPositionX
         this.y = this.startPositionY
         this.restoreTime = 0
+        this.dispatcher.dispatch('helmetBonusActivated', { entity: this, duration: PLAYER_SPAWN_PROTECTION })
+        this.changeDirection('Up')
       }
     }
   }

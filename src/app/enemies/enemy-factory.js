@@ -1,17 +1,25 @@
+import {
+  ENEMIES_TOTAL,
+  FIELD_TILES_X,
+  FAST_ENEMY_SPEED,
+  SLOW_ENEMY_SPEED,
+  TILE_SIZE,
+  ENEMY_SPAWN_DELAY
+} from '../constants.js'
 import { AssetsLoader } from '../assets-loader.js'
-import { ENEMIES_TOTAL, FIELD_TILES_X, FAST_ENEMY_SPEED, SLOW_ENEMY_SPEED, TILE_SIZE } from '../constants.js'
 import { Dispatcher } from '../dispatcher.js'
 import { Enemy1 } from './enemy1.js'
 import { Enemy2 } from './enemy2.js'
 import { Enemy3 } from './enemy3.js'
 import { Enemy4 } from './enemy4.js'
 import includes from 'lodash/includes'
+import size from 'lodash/size'
 
 export class EnemyFactory {
   constructor(maxLivingEnemies, hardMode) {
     this.hardMode = hardMode
-    this.creationDelay = 300
-    this.creationTime = 300
+    this.creationDelay = ENEMY_SPAWN_DELAY
+    this.creationTime = this.creationDelay
     this.enemiesCount = 0
     this.currentEnemyIndex = 0
     this.level = 1
@@ -82,8 +90,8 @@ export class EnemyFactory {
   }
 
   update(dt, enemies) {
-    if (enemies.length < this.maxLivingEnemies) {
-      this.creationTime += 120 * dt
+    if (size(enemies) < this.maxLivingEnemies) {
+      this.creationTime += dt
       this.create()
     }
   }
