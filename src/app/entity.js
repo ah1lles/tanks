@@ -2,6 +2,7 @@ import { AssetsLoader } from './assets-loader.js'
 import { Dispatcher } from './dispatcher.js'
 import { Canvas } from './canvas.js'
 import { Helper } from './helper.js'
+import { AudioApi } from './audio.js'
 
 export class Entity {
   constructor(x, y, width, height, sprites) {
@@ -24,6 +25,10 @@ export class Entity {
 
   get dispatcher() {
     return Dispatcher.getInstance()
+  }
+
+  get audioApi() {
+    return AudioApi.getInstance()
   }
 
   get img() {

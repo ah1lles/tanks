@@ -11,6 +11,7 @@ export class Enemy extends Tank {
     this.bonus = bonus
     this.type = 'enemy'
     this.canTakeBonus = hardMode
+    this._idxSprite = 0
     this.upgrade = 0
     this.maxUpgrade = 0
     this.deadlockDelay = 50
@@ -27,11 +28,11 @@ export class Enemy extends Tank {
   }
 
   get idxSprite() {
-    return this.showBonusSprite && this.bonus ? this.idxBonusSprite : this.upgrade
+    return this.showBonusSprite && this.bonus ? this.idxBonusSprite : this._idxSprite
   }
 
   set idxSprite(value) {
-    this.upgrade = value
+    this._idxSprite = value
   }
 
   generateChanceOfChangingDirection() {
@@ -66,6 +67,12 @@ export class Enemy extends Tank {
     if (this.bonus) {
       this.bonus = false
       this.dispatcher.dispatch('createBonus')
+    }
+  }
+
+  makeBonusSound() {
+    if (this.bonus) {
+      this.audioApi.play('bonusEnemyHitted')
     }
   }
 
@@ -122,6 +129,9 @@ export class Enemy extends Tank {
   }
 
   destroy(forceDestroy) {
+    this.makeBonusSound()
+    this.audioApi.play('enemyDied')
+
     if (!forceDestroy) {
       this.createBonus()
     }

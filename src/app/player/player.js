@@ -23,6 +23,7 @@ export class Player extends Tank {
     this.canTakeBonus = true
     this.startPositionX = this.x
     this.startPositionY = this.y
+    this.movingSoundEnabled = false
 
     document.addEventListener('keydown', e => this.keyDownHandler(e.code))
     document.addEventListener('keyup', e => this.keyUpHandler(e.code))
@@ -33,8 +34,20 @@ export class Player extends Tank {
   }
 
   set upgrade(value) {
-    this.idxSprite = value > this.maxUpgrade ? 0 : value
+    this.idxSprite = value > this.maxUpgrade ? this.maxUpgrade : value
   }
+
+  get nextShootCoef() {
+    return this.upgrade > 1 ? 350 : 400
+  }
+
+  set nextShootCoef(val) {}
+
+  get dischargeCoef() {
+    return this.upgrade > 1 ? 250 : 400
+  }
+
+  set dischargeCoef(val) {}
 
   keyDownHandler(key) {
     if (!this.checkKey(key)) return
@@ -64,6 +77,27 @@ export class Player extends Tank {
     if (!this.checkKey(key)) return
 
     this.keysPressed[this.keys[key]] = false
+  }
+
+  movingSoundControl() {
+    if (this.isPressedMovingKeys()) {
+      if (this.movingSoundEnabled) {
+        this.movingSoundEnabled = false
+        this.audioApi.pause('awaitingPlayer')
+        this.audioApi.play('movingPlayer')
+      }
+    } else {
+      if (!this.movingSoundEnabled) {
+        this.movingSoundEnabled = true
+        this.audioApi.pause('movingPlayer')
+        this.audioApi.play('awaitingPlayer')
+      }
+    }
+  }
+
+  createBullet() {
+    super.createBullet()
+    this.audioApi.play('playerShoot')
   }
 
   isPressedMovingKeys() {
@@ -114,10 +148,13 @@ export class Player extends Tank {
     super.update(dt, ...args)
 
     this.restorePlayer(dt)
+    this.movingSoundControl()
   }
 
   destroy(dt) {
     super.destroy()
+
+    this.audioApi.play('playerDied')
 
     if (this.lives === 0) {
       this.isOver = true

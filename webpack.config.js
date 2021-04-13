@@ -48,6 +48,10 @@ module.exports = {
         type: 'asset/resource'
       },
       {
+        test: /\.mp3$/i,
+        loader: 'file-loader'
+      },
+      {
         test: /\.js$/,
         include: path.resolve(__dirname, 'src'),
         loader: 'babel-loader'

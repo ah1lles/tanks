@@ -5,6 +5,10 @@ export class Life extends Bonus {
     super(...args)
   }
 
+  makeSound() {
+    this.audioApi.play('increaseCountOfLives')
+  }
+
   setBunusEffect(item, others) {
     item.increaseAmountOfLives()
   }

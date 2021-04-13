@@ -9,8 +9,13 @@ export class Armor extends Tile {
   }
 
   destroy(bullet) {
-    if (!bullet.piercing) return
-
-    super.destroy()
+    if (bullet.piercing) {
+      this.audioApi.play('hitOnArmorTile')
+      super.destroy()
+    } else {
+      if (bullet.from === 'player') {
+        this.audioApi.play('bulletIsOutOfField')
+      }
+    }
   }
 }

@@ -105,6 +105,9 @@ export class Bullet extends Entity {
         }
       }
     } else {
+      if (this.from === 'player') {
+        this.audioApi.play('bulletIsOutOfField')
+      }
       shouldDestroyBullet = true
     }
 

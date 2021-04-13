@@ -44,8 +44,13 @@ export class Bonus extends Entity {
     this.checkOthersCollision(others)
   }
 
+  makeSound() {
+    this.audioApi.play('bonusWasTaken')
+  }
+
   destroy(item, others) {
     this.setBunusEffect(item, others)
+    this.makeSound()
     this.finished = true
   }
 }

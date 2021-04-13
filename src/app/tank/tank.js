@@ -65,7 +65,7 @@ export class Tank extends Entity {
   set bulletPiercing(val) {}
 
   get nextShootCoef() {
-    return this.upgrade > 1 ? 300 : 250
+    return this.upgrade > 1 ? 300 : 200
   }
 
   set nextShootCoef(val) {}

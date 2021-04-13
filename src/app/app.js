@@ -28,9 +28,10 @@ import concat from 'lodash/concat'
 import difference from 'lodash/difference'
 
 export class App {
-  constructor(ctx, dispatcher, options) {
+  constructor(ctx, dispatcher, audioApi, options) {
     this.ctx = ctx
     this.dispatcher = dispatcher
+    this.audioApi = audioApi
     this.options = { ...options }
     this.level = this.options.level || 1
     this.isGameOver = false
