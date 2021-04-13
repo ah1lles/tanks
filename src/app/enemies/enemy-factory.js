@@ -1,11 +1,4 @@
-import {
-  ENEMIES_TOTAL,
-  FIELD_TILES_X,
-  FAST_ENEMY_SPEED,
-  SLOW_ENEMY_SPEED,
-  TILE_SIZE,
-  ENEMY_SPAWN_DELAY
-} from '../constants.js'
+import { FIELD_TILES_X, FAST_ENEMY_SPEED, SLOW_ENEMY_SPEED, TILE_SIZE, ENEMY_SPAWN_DELAY } from '../constants.js'
 import { AssetsLoader } from '../assets-loader.js'
 import { Dispatcher } from '../dispatcher.js'
 import { Enemy1 } from './enemy1.js'
@@ -19,11 +12,13 @@ export class EnemyFactory {
   constructor(maxLivingEnemies, hardMode) {
     this.hardMode = hardMode
     this.creationDelay = ENEMY_SPAWN_DELAY
-    this.creationTime = this.creationDelay
+    this.spawnAnimationDelay = ENEMY_SPAWN_DELAY / 2
+    this.creationTime = this.spawnAnimationDelay
+    this.spawnAnimationCreated = false
     this.enemiesCount = 0
     this.currentEnemyIndex = 0
     this.level = 1
-    this.maxEnemies = ENEMIES_TOTAL
+    this.maxEnemies = 20
     this.maxLivingEnemies = hardMode ? 6 : maxLivingEnemies || 4
     this.currentSpot = 1
     this.spots = {
@@ -66,6 +61,21 @@ export class EnemyFactory {
     return Dispatcher.getInstance()
   }
 
+  createSpawnAnimation() {
+    if (
+      this.creationTime > this.spawnAnimationDelay &&
+      !this.spawnAnimationCreated &&
+      this.currentEnemyIndex < this.maxEnemies
+    ) {
+      this.spawnAnimationCreated = true
+      this.dispatcher.dispatch('createSpawnAnimation', {
+        duration: this.spawnAnimationDelay,
+        x: this.spots[this.currentSpot].x,
+        y: this.spots[this.currentSpot].y
+      })
+    }
+  }
+
   create() {
     if (this.creationTime > this.creationDelay && this.currentEnemyIndex < this.maxEnemies) {
       const enemy = this.levelEnemiesSequence[this.level][this.currentEnemyIndex]
@@ -86,12 +96,14 @@ export class EnemyFactory {
       this.currentEnemyIndex++
       this.currentSpot = this.currentSpot < 2 ? this.currentSpot + 1 : 0
       this.creationTime = 0
+      this.spawnAnimationCreated = false
     }
   }
 
   update(dt, enemies) {
     if (size(enemies) < this.maxLivingEnemies) {
       this.creationTime += dt
+      this.createSpawnAnimation()
       this.create()
     }
   }

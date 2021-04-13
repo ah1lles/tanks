@@ -7,7 +7,7 @@ import playerDied from '../assets/player_or_headquarters_died.mp3'
 import bonusEnemyHitted from '../assets/bonus_enemy_was_hitted.mp3'
 import bonusWasTaken from '../assets/bonus_was_taken.mp3'
 import increaseCountOfLives from '../assets/increased_count_of_lives.mp3'
-import hitOnArmorTile from '../assets/hit_on_armor_tile.mp3'
+import hitAndDestroyTile from '../assets/hit_and_destroy_tile.mp3'
 import awaitingPlayer from '../assets/awaiting_player.mp3'
 import movingPlayer from '../assets/moving_player.mp3'
 
@@ -23,7 +23,7 @@ export class AudioApi {
       this.bonusEnemyHitted = new Audio(bonusEnemyHitted)
       this.bonusWasTaken = new Audio(bonusWasTaken)
       this.increaseCountOfLives = new Audio(increaseCountOfLives)
-      this.hitOnArmorTile = new Audio(hitOnArmorTile)
+      this.hitAndDestroyTile = new Audio(hitAndDestroyTile)
       this.awaitingPlayer = new Audio(awaitingPlayer)
       this.movingPlayer = new Audio(movingPlayer)
 

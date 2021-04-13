@@ -20,6 +20,10 @@ export class Bricks extends Tile {
   destroy(bullet) {
     const d = bullet.direction
 
+    if (bullet.from === 'player') {
+      this.audioApi.play('hitAndDestroyTile')
+    }
+
     if (bullet.piercing) {
       super.destroy()
       return

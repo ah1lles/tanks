@@ -184,6 +184,10 @@ export class Tank extends Entity {
     return !!find(tiles, tile => Helper.collision(tile, this))
   }
 
+  checkHeadquartersCollision(headquarters) {
+    return !headquarters.destroyed && Helper.collision(headquarters, this)
+  }
+
   checkOtherTanksCollision(others, posDiff) {
     let x = this.x
     let y = this.y
@@ -283,8 +287,8 @@ export class Tank extends Entity {
     }
   }
 
-  changePosition(dt, others, tiles) {
-    if (this.checkTilesCollision(tiles) || !this.checkFieldEnd()) {
+  changePosition(dt, others, tiles, headquarters) {
+    if (this.checkTilesCollision(tiles) || !this.checkFieldEnd() || this.checkHeadquartersCollision(headquarters)) {
       return this.balancePosition()
     }
 
@@ -300,10 +304,10 @@ export class Tank extends Entity {
     this._y = this.y
   }
 
-  update(dt, others, tiles) {
+  update(dt, ...args) {
     if (this.frozen) return
 
-    this.changePosition(dt, others, tiles)
+    this.changePosition(dt, ...args)
     this.nextShootTime += this.nextShootCoef * dt
     this.dischargeTime += this.dischargeCoef * dt
   }

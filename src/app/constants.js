@@ -16,7 +16,6 @@ export const FAST_ENEMY_SPEED = 200
 export const SLOW_BULLET_SPEED = 450
 export const FAST_BULLET_SPEED = 900
 
-export const ENEMIES_TOTAL = 20
 export const ENEMY_SPAWN_DELAY = 3 // секунд
 export const PLAYER_SPAWN_PROTECTION = 3 // секунд
 export const ANIMATION_SPEED = 16

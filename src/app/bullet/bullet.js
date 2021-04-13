@@ -85,7 +85,7 @@ export class Bullet extends Entity {
     )
   }
 
-  update(bullets, tiles, enemies, players) {
+  update(bullets, tiles, enemies, players, headquarters) {
     let shouldDestroyBullet = false
 
     if (this.checkFieldEnd()) {
@@ -101,6 +101,11 @@ export class Bullet extends Entity {
         }
 
         if (this.from === 'enemy' && this.checkItemsCollision(players)) {
+          shouldDestroyBullet = true
+        }
+
+        if (Helper.collision(headquarters, this) && !headquarters.destroyed) {
+          headquarters.destroy()
           shouldDestroyBullet = true
         }
       }

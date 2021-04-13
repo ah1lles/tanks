@@ -12,18 +12,20 @@ export class Player extends Tank {
     this.keys = keys
     this.lives = lives
     this.direction = 'Up'
-    this.upgrade = 0
+    this.upgrade = 3
     this.maxUpgrade = 3
     this.keysPressed = {}
     this.appearing = false
     this.bulletFrom = 'player'
     this.restoreTime = 0
-    this.restoreDelay = 1
+    this.spawnAnimationDelay = 0.5
+    this.restoreDelay = 2
     this.isOver = false
     this.canTakeBonus = true
     this.startPositionX = this.x
     this.startPositionY = this.y
     this.movingSoundEnabled = false
+    this.spawnAnimationCreated = false
 
     document.addEventListener('keydown', e => this.keyDownHandler(e.code))
     document.addEventListener('keyup', e => this.keyUpHandler(e.code))
@@ -81,17 +83,28 @@ export class Player extends Tank {
 
   movingSoundControl() {
     if (this.isPressedMovingKeys()) {
-      if (this.movingSoundEnabled) {
+      if (this.movingSoundEnabled && !this.destroyed && !this.isOver) {
         this.movingSoundEnabled = false
-        this.audioApi.pause('awaitingPlayer')
-        this.audioApi.play('movingPlayer')
+        // this.audioApi.pause('awaitingPlayer')
+        // this.audioApi.play('movingPlayer')
       }
     } else {
-      if (!this.movingSoundEnabled) {
+      if (!this.movingSoundEnabled && !this.destroyed && !this.isOver) {
         this.movingSoundEnabled = true
-        this.audioApi.pause('movingPlayer')
-        this.audioApi.play('awaitingPlayer')
+        // this.audioApi.pause('movingPlayer')
+        // this.audioApi.play('awaitingPlayer')
       }
+    }
+  }
+
+  createSpawnAnimation() {
+    if (this.restoreTime > this.spawnAnimationDelay && !this.spawnAnimationCreated) {
+      this.spawnAnimationCreated = true
+      this.dispatcher.dispatch('createSpawnAnimation', {
+        duration: this.restoreDelay - this.spawnAnimationDelay,
+        x: this.startPositionX,
+        y: this.startPositionY
+      })
     }
   }
 
@@ -132,12 +145,15 @@ export class Player extends Tank {
     if (this.destroyed === true && !this.isOver) {
       this.restoreTime += dt
 
+      this.createSpawnAnimation()
+
       if (this.restoreTime > this.restoreDelay) {
         this.appearing = true
         this.destroyed = false
         this.x = this.startPositionX
         this.y = this.startPositionY
         this.restoreTime = 0
+        this.movingSoundEnabled = true
         this.dispatcher.dispatch('helmetBonusActivated', { entity: this, duration: PLAYER_SPAWN_PROTECTION })
         this.changeDirection('Up')
       }
@@ -155,6 +171,9 @@ export class Player extends Tank {
     super.destroy()
 
     this.audioApi.play('playerDied')
+    this.audioApi.pause('awaitingPlayer')
+    this.audioApi.pause('movingPlayer')
+    this.movingSoundEnabled = false
 
     if (this.lives === 0) {
       this.isOver = true

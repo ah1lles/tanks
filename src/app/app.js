@@ -9,23 +9,28 @@ import {
   FIELD_SIZE_Y,
   FIELD_END_Y,
   PLAYER_SPEED,
-  PLAYER_SPAWN_PROTECTION
+  PLAYER_SPAWN_PROTECTION,
+  FIELD_END_X,
+  ENEMY_SPAWN_DELAY
 } from './constants.js'
-import { MAPS, TilesMap, A } from './maps.js'
+import { MAPS, TilesMap } from './maps.js'
 import { Player } from './player/player.js'
 import { Bullet } from './bullet/bullet.js'
 import { BonusFactory } from './bonus/bonus-factory.js'
 import { EnemyFactory } from './enemies/enemy-factory.js'
 import { Animation } from './animation/animation.js'
 import { HelmetOverlay } from './bonus/helmet-overlay.js'
+import { Headquarters } from './headquarters/headquarters.js'
+import { Entity } from './entity.js'
+import { SpawnAnimation } from './bonus/spawn-animation.js'
 import filter from 'lodash/filter'
 import map from 'lodash/map'
 import invokeMap from 'lodash/invokeMap'
 import sortBy from 'lodash/sortBy'
 import size from 'lodash/size'
-import find from 'lodash/find'
 import concat from 'lodash/concat'
 import difference from 'lodash/difference'
+import initial from 'lodash/initial'
 
 export class App {
   constructor(ctx, dispatcher, audioApi, options) {
@@ -45,19 +50,18 @@ export class App {
     this.explosions = []
     this.enemies = []
     this.bonuses = []
+    this.helmetOverlays = []
+    this.enemyMarkers = []
+    this.spawnAnimations = []
     this.bonusFactory = null
     this.enemyFactory = null
+    this.headquarters = null
     this.hardMode = false
     this.freezeEntities = false
     this.freezingLimit = 0
     this.freezingTime = 0
     this.bonusOwnerType = null
-    this.gainHeadquarters = false
-    this.chovelLimit = 0
-    this.chovelTime = 0
-    this.savedHeadquartersTiles = []
-    this.newHeadquartersTiles = []
-    this.helmetOverlays = []
+    this.gameStarted = false
     this.playersOptions = {
       0: {
         keys: { ArrowUp: 'Up', ArrowRight: 'Right', ArrowDown: 'Down', ArrowLeft: 'Left', Space: 'Attack' },
@@ -90,33 +94,54 @@ export class App {
     this.dispatcher.subscribe('createEnemy', e => this.handleEnemyCreation(e.data))
     this.dispatcher.subscribe('createBonus', e => this.handleBonusCreation())
     this.dispatcher.subscribe('playerDestroyed', e => this.handlePlayerDestroying())
+    this.dispatcher.subscribe('headquartersDestroyed', e => this.handleHeadquartersDestroying())
     this.dispatcher.subscribe('clockBonusActivated', e => this.handleClockBonusActivation(e.data))
     this.dispatcher.subscribe('clockBonusActivated', e => this.handleClockBonusActivation(e.data))
-    this.dispatcher.subscribe('chovelBonusActivated', e => this.handleChovelBonusActivation(e.data))
     this.dispatcher.subscribe('helmetBonusActivated', e => this.handleHelmetBonusActivation(e.data))
+    this.dispatcher.subscribe('buildNewHeadquartersTiles', e => this.handleUpdateNewHeadquarterTiles(e.data))
+    this.dispatcher.subscribe('returnBackHeadquartersTiles', e => this.handleReturnBackHeadquarterTiles(e.data))
+    this.dispatcher.subscribe('createSpawnAnimation', e => this.handleSpawnAnimationCreation(e.data))
 
     window.addEventListener('focus', () => {
-      if (this.pause && !this.pausePressed) {
+      if (this.pause && !this.pausePressed && this.gameStarted) {
         this.pauseGame(false)
       }
     })
 
     window.addEventListener('blur', () => {
-      if (!this.pause) {
+      if (!this.pause && this.gameStarted) {
         this.pauseGame(true)
       }
     })
     this.start()
+    // this.createStartScreen()
   }
+
+  // createStartScreen() {
+  //   this.ctx.fillStyle = '#000'
+  //   this.ctx.fillRect(0, 0, MAP_SIZE_X, MAP_SIZE_Y)
+  //   this.ctx.font = '48px sans-serif'
+  //   this.ctx.fillStyle = 'white'
+  //   this.ctx.textAlign = 'center'
+  //   this.ctx.fillText('1 player', 600, 500)
+  //   this.ctx.fillText('2 player', 600, 600)
+  //   // this.ctx.fillStyle = '#000'
+  //   // this.ctx.fillRect(FIELD_START_X, FIELD_START_Y, FIELD_SIZE_X, FIELD_SIZE_Y)
+  //   this.ctx.save()
+  // }
 
   start() {
     this.enemyFactory = new EnemyFactory(this.playersCount > 1 ? 6 : 4, this.hardMode)
     this.bonusFactory = new BonusFactory()
+    this.headquarters = new Headquarters()
     this.createTiles()
     this.createPlayers()
     this.startPlayerSpawnProtection()
+    this.createPlayerSpawnAnimations()
+    this.createEnemyMarkers()
     this.lastTime = Date.now()
     this.loop()
+    this.gameStarted = true
   }
 
   pauseGame(bool) {
@@ -136,6 +161,13 @@ export class App {
 
   handlePlayerDestroying() {
     if (size(filter(this.players, { isOver: true })) === this.playersCount) {
+      this.gameOver = true
+    }
+  }
+
+  handleHeadquartersDestroying() {
+    if (this.headquarters.destroyed) {
+      console.log('GAME OVER!')
       this.gameOver = true
     }
   }
@@ -161,22 +193,50 @@ export class App {
     this.explosions.push(this.createExplosion(data.framesCount, data.x, data.y, data.width, data.height, data.sprites))
   }
 
+  handleSpawnAnimationCreation(data) {
+    this.spawnAnimations.push(
+      new SpawnAnimation(7, null, true, data.duration, data.x, data.y, TILE_SIZE * 2, TILE_SIZE * 2, [
+        'spawn_animation'
+      ])
+    )
+    // console.log(this.spawnAnimations)
+  }
+
   handleEnemyCreation(data) {
     if (data.bonus) {
       this.bonuses = []
     }
+    this.enemyMarkers = initial(this.enemyMarkers)
     this.enemies.push(data)
   }
 
   handleBonusCreation() {
+    if (size(this.bonuses) > 0) {
+      this.bonuses = []
+    }
     this.bonuses.push(this.bonusFactory.create(filter(this.tiles, { destroyed: false })))
-    console.log(this.bonuses)
   }
 
   handleClockBonusActivation({ limit, bonusOwnerType }) {
     this.freezeEntities = true
     this.freezingLimit = limit
     this.bonusOwnerType = bonusOwnerType
+  }
+
+  createEnemyMarkers() {
+    let x = FIELD_END_X
+    let y = FIELD_START_Y
+
+    this.enemyMarkers = map(Array(20), (v, i) => {
+      if (i % 2 === 0) {
+        x = FIELD_END_X
+        y += FIELD_START_Y
+      }
+
+      x += TILE_SIZE
+
+      return new Entity(x, y, TILE_SIZE, TILE_SIZE, ['enemy_indicator'])
+    })
   }
 
   updateFreezingTime(dt) {
@@ -195,63 +255,15 @@ export class App {
     }
   }
 
-  compareTilesByPosition(tile, tilesPos) {
-    return !!find(tilesPos, t => {
-      return t.x === tile.x && t.y === tile.y
-    })
-  }
-
-  handleChovelBonusActivation({ limit }) {
-    const leftX = FIELD_START_X + TILE_SIZE * 11
-    const rightX = FIELD_START_X + TILE_SIZE * 14
-    const topY = FIELD_END_Y - TILE_SIZE * 3
-    const tilesAroundHeadquarters = [
-      { x: leftX, y: topY + TILE_SIZE * 2 },
-      { x: leftX, y: topY + TILE_SIZE },
-      { x: leftX, y: topY },
-      { x: leftX + TILE_SIZE, y: topY },
-      { x: leftX + TILE_SIZE * 2, y: topY },
-      { x: rightX, y: topY },
-      { x: rightX, y: topY + TILE_SIZE },
-      { x: rightX, y: topY + TILE_SIZE * 2 }
-    ]
-
-    if (!this.gainHeadquarters) {
-      this.savedHeadquartersTiles = filter(this.tiles, tile =>
-        this.compareTilesByPosition(tile, tilesAroundHeadquarters)
-      )
-    }
-
-    if (size(this.newHeadquartersTiles) > 0) {
-      this.tiles = difference(this.tiles, this.newHeadquartersTiles)
-    }
-
-    this.newHeadquartersTiles = map(tilesAroundHeadquarters, v => {
-      return new TilesMap[A].instant(v.x, v.y, TILE_SIZE, TILE_SIZE, TilesMap[A].sprites)
-    })
-    this.tiles = concat(difference(this.tiles, this.savedHeadquartersTiles), this.newHeadquartersTiles)
-    this.gainHeadquarters = true
-    this.chovelLimit += limit
-  }
-
-  updateGainHeadquartersTime(dt) {
-    if (!this.gainHeadquarters) return
-
-    this.chovelTime += dt
-
-    if (this.chovelTime > this.chovelLimit) {
-      this.gainHeadquarters = false
-      this.chovelTime = 0
-      this.chovelLimit = 0
-      this.tiles = concat(difference(this.tiles, this.newHeadquartersTiles), this.savedHeadquartersTiles)
-      this.savedHeadquartersTiles = []
-      this.newHeadquartersTiles = []
-    }
-  }
-
   startPlayerSpawnProtection() {
     this.players.forEach(player =>
       this.handleHelmetBonusActivation({ entity: player, duration: PLAYER_SPAWN_PROTECTION })
+    )
+  }
+
+  createPlayerSpawnAnimations() {
+    this.players.forEach(player =>
+      this.handleSpawnAnimationCreation({ x: player.x, y: player.y, duration: ENEMY_SPAWN_DELAY / 2 })
     )
   }
 
@@ -261,6 +273,14 @@ export class App {
         'bonus_animation'
       ])
     )
+  }
+
+  handleUpdateNewHeadquarterTiles({ oldTiles, newTiles }) {
+    this.tiles = concat(difference(this.tiles, oldTiles), newTiles)
+  }
+
+  handleReturnBackHeadquarterTiles({ oldTiles, newTiles }) {
+    this.tiles = concat(difference(this.tiles, newTiles), oldTiles)
   }
 
   createPlayer(keys, lives, speed, x, y, width, height, sprites) {
@@ -282,10 +302,10 @@ export class App {
     map.forEach((v, i) => {
       if (i % FIELD_TILES_X === 0) {
         x = 0
-        y += FIELD_START_Y
+        y += TILE_SIZE
       }
 
-      x += FIELD_START_X
+      x += TILE_SIZE
 
       if (v) {
         this.tiles.push(new TilesMap[v].instant(x, y, TILE_SIZE, TILE_SIZE, TilesMap[v].sprites))
@@ -316,7 +336,8 @@ export class App {
       'update',
       dt,
       [...this.enemies, ...filter(this.players, { destroyed: false })],
-      filter(this.tiles, { passable: false, destroyed: false })
+      filter(this.tiles, { passable: false, destroyed: false }),
+      this.headquarters
     )
   }
 
@@ -334,7 +355,8 @@ export class App {
       this.bullets,
       filter(this.tiles, { passable: false, destroyable: true, destroyed: false }),
       this.enemies,
-      filter(this.players, { destroyed: false })
+      filter(this.players, { destroyed: false }),
+      this.headquarters
     )
     invokeMap(this.bullets, 'changePosition', dt)
   }
@@ -346,7 +368,8 @@ export class App {
       'update',
       dt,
       [...this.enemies, ...filter(this.players, { destroyed: false })],
-      filter(this.tiles, { passable: false, destroyed: false })
+      filter(this.tiles, { passable: false, destroyed: false }),
+      this.headquarters
     )
   }
 
@@ -363,6 +386,15 @@ export class App {
     invokeMap(this.helmetOverlays, 'update', dt)
   }
 
+  updateHeadquarters(dt) {
+    this.headquarters.update(dt, filter(this.tiles, { destroyed: false }))
+  }
+
+  updateSpawnAnimations(dt) {
+    this.spawnAnimations = filter(this.spawnAnimations, { finished: false })
+    invokeMap(this.spawnAnimations, 'update', dt)
+  }
+
   renderMap() {
     this.ctx.fillStyle = '#747474'
     this.ctx.fillRect(0, 0, MAP_SIZE_X, MAP_SIZE_Y)
@@ -372,7 +404,6 @@ export class App {
   }
 
   update(dt) {
-    this.updateGainHeadquartersTime(dt)
     this.updateFreezingTime(dt)
     this.updateTiles()
     this.updatePlayers(dt)
@@ -381,6 +412,8 @@ export class App {
     this.updateBullets(dt)
     this.updateBonuses(dt)
     this.updateHelmetOverlays(dt)
+    this.updateHeadquarters(dt)
+    this.updateSpawnAnimations(dt)
     this.enemyFactory.update(dt, this.enemies)
   }
 
@@ -396,7 +429,10 @@ export class App {
           ...this.bullets,
           ...this.explosions,
           ...this.bonuses,
-          ...this.helmetOverlays
+          ...this.helmetOverlays,
+          ...this.enemyMarkers,
+          ...this.spawnAnimations,
+          this.headquarters
         ],
         e => e.zindex
       ),

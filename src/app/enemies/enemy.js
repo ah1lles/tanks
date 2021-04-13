@@ -44,7 +44,7 @@ export class Enemy extends Tank {
   }
 
   shoutingDecision() {
-    if (this.generateChanceOfShooting() < 4) {
+    if (this.generateChanceOfShooting() < 5) {
       this.shoot()
       this.shootingTime = 0
     }
@@ -94,10 +94,10 @@ export class Enemy extends Tank {
     this.changeDirectionWhenLocked(dt)
   }
 
-  update(dt, others, tiles) {
+  update(dt, ...args) {
     if (this.frozen) return
 
-    super.update(dt, others, tiles)
+    super.update(dt, ...args)
 
     if (!this.checkFieldEnd()) {
       this.changeDirectionWhenLocked(dt)
