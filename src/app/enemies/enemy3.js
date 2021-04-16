@@ -4,7 +4,7 @@ export class Enemy3 extends Enemy {
   constructor(...args) {
     super(...args)
 
-    this.bulletType = 'fast'
+    this.upgrade = 2
   }
 
   destroy() {

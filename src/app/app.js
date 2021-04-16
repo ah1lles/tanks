@@ -9,7 +9,6 @@ import {
   FIELD_SIZE_Y,
   FIELD_END_Y,
   PLAYER_SPEED,
-  PLAYER_SPAWN_PROTECTION,
   FIELD_END_X,
   ENEMY_SPAWN_DELAY
 } from './constants.js'
@@ -23,6 +22,9 @@ import { HelmetOverlay } from './bonus/helmet-overlay.js'
 import { Headquarters } from './headquarters/headquarters.js'
 import { Entity } from './entity.js'
 import { SpawnAnimation } from './bonus/spawn-animation.js'
+import { StartScreen } from './start-screen/start-screen.js'
+import { LevelScreen } from './start-screen/level-screen.js'
+import { SidebarStats } from './stats/sidebar-stats.js'
 import filter from 'lodash/filter'
 import map from 'lodash/map'
 import invokeMap from 'lodash/invokeMap'
@@ -39,7 +41,6 @@ export class App {
     this.audioApi = audioApi
     this.options = { ...options }
     this.level = this.options.level || 1
-    this.isGameOver = false
     this.pause = false
     this.pausePressed = false
     this.lastTime = 0
@@ -56,12 +57,16 @@ export class App {
     this.bonusFactory = null
     this.enemyFactory = null
     this.headquarters = null
+    this.startScreen = null
+    this.levelScreen = null
+    this.sidebarStats = null
     this.hardMode = false
     this.freezeEntities = false
     this.freezingLimit = 0
     this.freezingTime = 0
     this.bonusOwnerType = null
     this.gameStarted = false
+    this.gameOver = false
     this.playersOptions = {
       0: {
         keys: { ArrowUp: 'Up', ArrowRight: 'Right', ArrowDown: 'Down', ArrowLeft: 'Left', Space: 'Attack' },
@@ -101,6 +106,9 @@ export class App {
     this.dispatcher.subscribe('buildNewHeadquartersTiles', e => this.handleUpdateNewHeadquarterTiles(e.data))
     this.dispatcher.subscribe('returnBackHeadquartersTiles', e => this.handleReturnBackHeadquarterTiles(e.data))
     this.dispatcher.subscribe('createSpawnAnimation', e => this.handleSpawnAnimationCreation(e.data))
+    this.dispatcher.subscribe('getStartSettings', e => this.handleGetStartSettings(e.data))
+    this.dispatcher.subscribe('chooseLevel', e => this.handleChoosingLevel(e.data))
+    this.dispatcher.subscribe('levelCompleted', e => this.handleLevelCompleted())
 
     window.addEventListener('focus', () => {
       if (this.pause && !this.pausePressed && this.gameStarted) {
@@ -113,35 +121,47 @@ export class App {
         this.pauseGame(true)
       }
     })
-    this.start()
-    // this.createStartScreen()
-  }
 
-  // createStartScreen() {
-  //   this.ctx.fillStyle = '#000'
-  //   this.ctx.fillRect(0, 0, MAP_SIZE_X, MAP_SIZE_Y)
-  //   this.ctx.font = '48px sans-serif'
-  //   this.ctx.fillStyle = 'white'
-  //   this.ctx.textAlign = 'center'
-  //   this.ctx.fillText('1 player', 600, 500)
-  //   this.ctx.fillText('2 player', 600, 600)
-  //   // this.ctx.fillStyle = '#000'
-  //   // this.ctx.fillRect(FIELD_START_X, FIELD_START_Y, FIELD_SIZE_X, FIELD_SIZE_Y)
-  //   this.ctx.save()
-  // }
-
-  start() {
-    this.enemyFactory = new EnemyFactory(this.playersCount > 1 ? 6 : 4, this.hardMode)
-    this.bonusFactory = new BonusFactory()
-    this.headquarters = new Headquarters()
-    this.createTiles()
-    this.createPlayers()
-    this.startPlayerSpawnProtection()
-    this.createPlayerSpawnAnimations()
-    this.createEnemyMarkers()
+    this.startScreen = new StartScreen()
     this.lastTime = Date.now()
     this.loop()
+  }
+
+  handleGetStartSettings({ playersCount, hardMode }) {
+    this.playersCount = playersCount
+    this.hardMode = hardMode
+    this.startScreen.destroy()
+    this.startScreen = null
+    this.levelScreen = new LevelScreen(true, 1)
+  }
+
+  handleChoosingLevel({ level }) {
+    this.level = level
+    this.levelScreen.destroy()
+    this.levelScreen = null
+    this.start()
+  }
+
+  start() {
     this.gameStarted = true
+    this.enemyFactory = new EnemyFactory(this.playersCount > 1 ? 6 : 4, this.hardMode, this.level)
+    this.bonusFactory = new BonusFactory()
+    this.headquarters = new Headquarters()
+    this.sidebarStats = new SidebarStats()
+    this.createTiles()
+    this.createPlayers()
+    this.createPlayerSpawnAnimations()
+    this.createEnemyMarkers()
+  }
+
+  handleLevelCompleted() {
+    this.enemyFactory.destroy()
+    this.enemyFactory = null
+    this.level++
+
+    if (this.level <= size(MAPS)) {
+      this.levelScreen = new LevelScreen(false, this.level)
+    }
   }
 
   pauseGame(bool) {
@@ -167,7 +187,6 @@ export class App {
 
   handleHeadquartersDestroying() {
     if (this.headquarters.destroyed) {
-      console.log('GAME OVER!')
       this.gameOver = true
     }
   }
@@ -199,7 +218,6 @@ export class App {
         'spawn_animation'
       ])
     )
-    // console.log(this.spawnAnimations)
   }
 
   handleEnemyCreation(data) {
@@ -253,12 +271,6 @@ export class App {
       this.freezingTime = 0
       invokeMap(this[entitiesName], 'unfreezeTank')
     }
-  }
-
-  startPlayerSpawnProtection() {
-    this.players.forEach(player =>
-      this.handleHelmetBonusActivation({ entity: player, duration: PLAYER_SPAWN_PROTECTION })
-    )
   }
 
   createPlayerSpawnAnimations() {
@@ -387,7 +399,7 @@ export class App {
   }
 
   updateHeadquarters(dt) {
-    this.headquarters.update(dt, filter(this.tiles, { destroyed: false }))
+    this?.headquarters?.update(dt, filter(this.tiles, { destroyed: false }))
   }
 
   updateSpawnAnimations(dt) {
@@ -414,7 +426,10 @@ export class App {
     this.updateHelmetOverlays(dt)
     this.updateHeadquarters(dt)
     this.updateSpawnAnimations(dt)
-    this.enemyFactory.update(dt, this.enemies)
+    this?.enemyFactory?.update(dt, this.enemies)
+    this?.startScreen?.update(dt)
+    this?.levelScreen?.update(dt)
+    this?.sidebarStats?.update(dt, this.players, this.level)
   }
 
   render(dt) {
@@ -432,9 +447,12 @@ export class App {
           ...this.helmetOverlays,
           ...this.enemyMarkers,
           ...this.spawnAnimations,
-          this.headquarters
+          this.headquarters,
+          this.sidebarStats,
+          this.startScreen,
+          this.levelScreen
         ],
-        e => e.zindex
+        e => e && e.zindex
       ),
       'render',
       dt

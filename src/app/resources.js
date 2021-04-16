@@ -29,6 +29,7 @@ import explosion from '../assets/explosion.png'
 import explosion2 from '../assets/explosion2.png'
 import bonus_animation from '../assets/bonus_animation.png'
 import spawn_animation from '../assets/spawn_animation.png'
+import logo from '../assets/logo.png'
 
 export const resources = {
   tank_1,
@@ -61,5 +62,6 @@ export const resources = {
   explosion,
   explosion2,
   bonus_animation,
-  spawn_animation
+  spawn_animation,
+  logo
 }

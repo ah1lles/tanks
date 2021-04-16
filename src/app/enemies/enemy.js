@@ -135,6 +135,7 @@ export class Enemy extends Tank {
     if (!forceDestroy) {
       this.createBonus()
     }
+    this.dispatcher.dispatch('enemyWasDestroyed')
     super.destroy()
   }
 }

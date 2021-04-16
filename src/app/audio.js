@@ -28,9 +28,9 @@ export class AudioApi {
       this.movingPlayer = new Audio(movingPlayer)
 
       this.awaitingPlayer.loop = true
-      this.awaitingPlayer.volume = 0.2
+      this.awaitingPlayer.volume = 0.4
       this.movingPlayer.loop = true
-      this.movingPlayer.volume = 0.5
+      this.movingPlayer.volume = 0.7
 
       AudioApi._instance = this
     }

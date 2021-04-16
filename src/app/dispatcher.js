@@ -32,7 +32,7 @@ export class Dispatcher {
   }
 
   unsubscribe(eventName, handler) {
-    const listeners = this.#events[eventName]
+    let listeners = this.#events[eventName]
 
     listeners = without(listeners, handler)
 

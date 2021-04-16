@@ -9,15 +9,19 @@ import includes from 'lodash/includes'
 import size from 'lodash/size'
 
 export class EnemyFactory {
-  constructor(maxLivingEnemies, hardMode) {
+  constructor(maxLivingEnemies, hardMode, level) {
     this.hardMode = hardMode
     this.creationDelay = ENEMY_SPAWN_DELAY
     this.spawnAnimationDelay = ENEMY_SPAWN_DELAY / 2
     this.creationTime = this.spawnAnimationDelay
+    this.completeLevelDelay = 3
+    this.completeLevelTime = 0
     this.spawnAnimationCreated = false
+    this.allEnemiesWereDestroyed = false
     this.enemiesCount = 0
+    this.destroyedEnemyCount = 0
     this.currentEnemyIndex = 0
-    this.level = 1
+    this.level = level || 1
     this.maxEnemies = 20
     this.maxLivingEnemies = hardMode ? 6 : maxLivingEnemies || 4
     this.currentSpot = 1
@@ -43,7 +47,8 @@ export class EnemyFactory {
     }
     this.bonusTanks = [3, 10, 17]
     this.levelEnemiesSequence = {
-      1: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1]
+      1: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1],
+      2: [2, 2, 3, 3, 0, 0, 3, 3, 0, 1, 1, 0, 2, 2, 0, 1, 3, 0, 1, 1]
     }
     this.enemiesClasses = {
       0: Enemy1,
@@ -51,6 +56,12 @@ export class EnemyFactory {
       2: Enemy3,
       3: Enemy4
     }
+    this.handlerEnemyDestroying = () => {
+      this.destroyedEnemyCount++
+      this.allEnemiesWereDestroyed = this.destroyedEnemyCount === this.maxEnemies
+    }
+
+    this.dispatcher.subscribe('enemyWasDestroyed', this.handlerEnemyDestroying)
   }
 
   get assetsLoader() {
@@ -106,9 +117,19 @@ export class EnemyFactory {
       this.createSpawnAnimation()
       this.create()
     }
+
+    if (this.allEnemiesWereDestroyed) {
+      this.completeLevelTime += dt
+
+      if (this.completeLevelTime > this.completeLevelDelay) {
+        this.completeLevelTime = 0
+        this.allEnemiesWereDestroyed = false
+        this.dispatcher.dispatch('levelCompleted')
+      }
+    }
   }
 
-  changeLevel(level) {
-    this.level = level
+  destroy() {
+    this.dispatcher.unsubscribe('enemyWasDestroyed', this.handlerEnemyDestroying)
   }
 }

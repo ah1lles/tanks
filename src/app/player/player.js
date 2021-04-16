@@ -18,14 +18,14 @@ export class Player extends Tank {
     this.appearing = false
     this.bulletFrom = 'player'
     this.restoreTime = 0
-    this.spawnAnimationDelay = 0.5
-    this.restoreDelay = 2
+    this.restoreDelay = 1.5
     this.isOver = false
     this.canTakeBonus = true
     this.startPositionX = this.x
     this.startPositionY = this.y
     this.movingSoundEnabled = false
     this.spawnAnimationCreated = false
+    this.destroyed = true
 
     document.addEventListener('keydown', e => this.keyDownHandler(e.code))
     document.addEventListener('keyup', e => this.keyUpHandler(e.code))
@@ -85,23 +85,23 @@ export class Player extends Tank {
     if (this.isPressedMovingKeys()) {
       if (this.movingSoundEnabled && !this.destroyed && !this.isOver) {
         this.movingSoundEnabled = false
-        // this.audioApi.pause('awaitingPlayer')
-        // this.audioApi.play('movingPlayer')
+        this.audioApi.pause('awaitingPlayer')
+        this.audioApi.play('movingPlayer')
       }
     } else {
       if (!this.movingSoundEnabled && !this.destroyed && !this.isOver) {
         this.movingSoundEnabled = true
-        // this.audioApi.pause('movingPlayer')
-        // this.audioApi.play('awaitingPlayer')
+        this.audioApi.pause('movingPlayer')
+        this.audioApi.play('awaitingPlayer')
       }
     }
   }
 
   createSpawnAnimation() {
-    if (this.restoreTime > this.spawnAnimationDelay && !this.spawnAnimationCreated) {
+    if (!this.spawnAnimationCreated) {
       this.spawnAnimationCreated = true
       this.dispatcher.dispatch('createSpawnAnimation', {
-        duration: this.restoreDelay - this.spawnAnimationDelay,
+        duration: this.restoreDelay,
         x: this.startPositionX,
         y: this.startPositionY
       })
@@ -154,6 +154,7 @@ export class Player extends Tank {
         this.y = this.startPositionY
         this.restoreTime = 0
         this.movingSoundEnabled = true
+        this.spawnAnimationCreated = false
         this.dispatcher.dispatch('helmetBonusActivated', { entity: this, duration: PLAYER_SPAWN_PROTECTION })
         this.changeDirection('Up')
       }
