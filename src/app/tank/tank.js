@@ -313,6 +313,8 @@ export class Tank extends Entity {
   }
 
   destroy() {
+    if (this.indestructible) return
+
     super.destroy()
     this.createExplosion()
   }

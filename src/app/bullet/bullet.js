@@ -76,9 +76,7 @@ export class Bullet extends Entity {
         const collide = Helper.collision(item, this)
 
         if (collide) {
-          if (!item.indestructible) {
-            item.destroy(this)
-          }
+          item.destroy(this)
         }
         return collide
       })

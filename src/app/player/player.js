@@ -1,4 +1,4 @@
-import { PLAYER_SPAWN_PROTECTION } from '../constants.js'
+import { ANIMATION_SPEED, ENEMY_SPAWN_DELAY, PLAYER_SPAWN_PROTECTION } from '../constants.js'
 import { Tank } from '../tank/tank.js'
 import some from 'lodash/some'
 import values from 'lodash/values'
@@ -8,17 +8,17 @@ export class Player extends Tank {
   constructor(keys, lives, ...args) {
     super(...args)
 
+    this.id = Player.getPlayerId()
     this.type = 'player'
     this.keys = keys
     this.lives = lives
     this.direction = 'Up'
-    this.upgrade = 3
+    this.upgrade = 0
     this.maxUpgrade = 3
     this.keysPressed = {}
     this.appearing = false
     this.bulletFrom = 'player'
-    this.restoreTime = 0
-    this.restoreDelay = 1.5
+    this.restoreDelay = ENEMY_SPAWN_DELAY / 2
     this.isOver = false
     this.canTakeBonus = true
     this.startPositionX = this.x
@@ -26,9 +26,20 @@ export class Player extends Tank {
     this.movingSoundEnabled = false
     this.spawnAnimationCreated = false
     this.destroyed = true
+    this.score = 0
+    this.pointsForFreeLife = 20000
+    this.pointsCounter = this.pointsForFreeLife
+    this.lostControls = false
+    this.restore = this.after(this.restoreDelay, () => this.restorePlayer())
 
     document.addEventListener('keydown', e => this.keyDownHandler(e.code))
     document.addEventListener('keyup', e => this.keyUpHandler(e.code))
+  }
+
+  static playerId = 0
+
+  static getPlayerId() {
+    return ++Player.playerId
   }
 
   get upgrade() {
@@ -51,8 +62,23 @@ export class Player extends Tank {
 
   set dischargeCoef(val) {}
 
+  get lostControls() {
+    return this._lostControls
+  }
+
+  set lostControls(val) {
+    if (this._lostControls !== val && val) {
+      this.audioApi.pause('awaitingPlayer')
+      this.audioApi.pause('movingPlayer')
+    }
+    if (this._lostControls !== val && !val) {
+      this.audioApi.play('awaitingPlayer')
+    }
+    this._lostControls = val
+  }
+
   keyDownHandler(key) {
-    if (!this.checkKey(key)) return
+    if (!this.checkKey(key) || this.lostControls) return
 
     if (this.keys[key] !== 'Attack') {
       this.keysPressed[this.keys[key]] = true
@@ -73,23 +99,36 @@ export class Player extends Tank {
     } else {
       this.changeDirection(this.keys[key])
     }
+    this.movingSoundControl()
   }
 
   keyUpHandler(key) {
     if (!this.checkKey(key)) return
 
     this.keysPressed[this.keys[key]] = false
+    this.movingSoundControl()
+  }
+
+  addScore(points) {
+    this.score += points
+    this.pointsCounter -= points
+    console.log('Player score: ', this.score)
+    if (this.pointsCounter <= 0) {
+      this.pointsCounter = this.pointsForFreeLife
+      this.increaseAmountOfLives()
+      this.audioApi.play('increaseCountOfLives')
+    }
   }
 
   movingSoundControl() {
     if (this.isPressedMovingKeys()) {
-      if (this.movingSoundEnabled && !this.destroyed && !this.isOver) {
+      if (this.movingSoundEnabled && !this.destroyed && !this.isOver && !this.lostControls) {
         this.movingSoundEnabled = false
         this.audioApi.pause('awaitingPlayer')
         this.audioApi.play('movingPlayer')
       }
     } else {
-      if (!this.movingSoundEnabled && !this.destroyed && !this.isOver) {
+      if (!this.movingSoundEnabled && !this.destroyed && !this.isOver && !this.lostControls) {
         this.movingSoundEnabled = true
         this.audioApi.pause('movingPlayer')
         this.audioApi.play('awaitingPlayer')
@@ -102,6 +141,7 @@ export class Player extends Tank {
       this.spawnAnimationCreated = true
       this.dispatcher.dispatch('createSpawnAnimation', {
         duration: this.restoreDelay,
+        spped: ANIMATION_SPEED * 1.5,
         x: this.startPositionX,
         y: this.startPositionY
       })
@@ -141,34 +181,37 @@ export class Player extends Tank {
     super.changePosition(...args)
   }
 
-  restorePlayer(dt) {
-    if (this.destroyed === true && !this.isOver) {
-      this.restoreTime += dt
+  updateForNewLevel() {
+    this.destroyed = true
+    this.x = this.startPositionX
+    this.y = this.startPositionY
+  }
 
+  restorePlayer() {
+    this.appearing = true
+    this.destroyed = false
+    this.x = this.startPositionX
+    this.y = this.startPositionY
+    this.movingSoundEnabled = true
+    this.spawnAnimationCreated = false
+    this.dispatcher.dispatch('helmetBonusActivated', { entity: this, duration: PLAYER_SPAWN_PROTECTION })
+    this.changeDirection('Up')
+  }
+
+  update(dt, pause, gameStarted, ...args) {
+    this.lostControls = pause || !gameStarted ? true : false
+
+    super.update(dt, ...args)
+
+    if (this.destroyed && !this.isOver) {
       this.createSpawnAnimation()
-
-      if (this.restoreTime > this.restoreDelay) {
-        this.appearing = true
-        this.destroyed = false
-        this.x = this.startPositionX
-        this.y = this.startPositionY
-        this.restoreTime = 0
-        this.movingSoundEnabled = true
-        this.spawnAnimationCreated = false
-        this.dispatcher.dispatch('helmetBonusActivated', { entity: this, duration: PLAYER_SPAWN_PROTECTION })
-        this.changeDirection('Up')
-      }
+      this.restore(dt)
     }
   }
 
-  update(dt, ...args) {
-    super.update(dt, ...args)
-
-    this.restorePlayer(dt)
-    this.movingSoundControl()
-  }
-
   destroy(dt) {
+    if (this.indestructible) return
+
     super.destroy()
 
     this.audioApi.play('playerDied')

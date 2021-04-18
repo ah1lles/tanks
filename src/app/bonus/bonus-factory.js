@@ -1,6 +1,5 @@
 import { FIELD_END_X, FIELD_END_Y, FIELD_START_X, FIELD_START_Y, TILE_SIZE } from '../constants.js'
-import { AssetsLoader } from '../assets-loader.js'
-import { Dispatcher } from '../dispatcher.js'
+import { Base } from '../base.js'
 import { Chovel } from './chovel.js'
 import { Clock } from './clock.js'
 import { Grenade } from './grenade.js'
@@ -13,8 +12,10 @@ import filter from 'lodash/filter'
 import find from 'lodash/find'
 import size from 'lodash/size'
 
-export class BonusFactory {
+export class BonusFactory extends Base {
   constructor() {
+    super()
+
     this.bonuses = {
       1: {
         instance: Helmet,
@@ -45,14 +46,6 @@ export class BonusFactory {
         sprite: ['bonuses']
       }
     }
-  }
-
-  get assetsLoader() {
-    return AssetsLoader.getInstance()
-  }
-
-  get dispatcher() {
-    return Dispatcher.getInstance()
   }
 
   genarateChance() {

@@ -7,15 +7,13 @@ import { App } from './app/app.js'
 import { resources } from './app/resources.js'
 import { AudioApi } from './app/audio'
 
-const options = {
-  playerLives: 2,
-  level: 1
-}
-
 const assetsLoader = new AssetsLoader()
 const canvas = new Canvas()
 const dispatcher = new Dispatcher()
 const audioApi = new AudioApi()
-const app = new App(canvas.init(), dispatcher, audioApi, options)
+const app = new App()
 
-assetsLoader.load(resources).then(() => app.init())
+assetsLoader.load(resources).then(() => {
+  canvas.init()
+  app.init()
+})

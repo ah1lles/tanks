@@ -1,11 +1,11 @@
 import { FIELD_END_X, FIELD_END_Y, TILE_SIZE } from '../constants.js'
-import { AssetsLoader } from '../assets-loader.js'
-import { Dispatcher } from '../dispatcher.js'
-import { Canvas } from '../canvas.js'
+import { Base } from '../base.js'
 import map from 'lodash/map'
 
-export class SidebarStats {
+export class SidebarStats extends Base {
   constructor() {
+    super()
+
     this.playersCount = 1
     this.lavelInfo = {
       img: {
@@ -55,24 +55,20 @@ export class SidebarStats {
     ]
   }
 
-  get assetsLoader() {
-    return AssetsLoader.getInstance()
+  renderText(text, x, y, color, font) {
+    this.ctx.fillStyle = color || 'black'
+    this.ctx.font = font || 'bold 32px sans-serif'
+    this.ctx.fillText(text, x, y)
   }
 
-  get dispatcher() {
-    return Dispatcher.getInstance()
-  }
-
-  get ctx() {
-    return Canvas.getInstance().ctx
+  renderImg(img, x, y, width, height) {
+    this.ctx.drawImage(this.assetsLoader.get(img), x, y, width, height)
   }
 
   renderLevelInfo() {
-    this.ctx.fillStyle = 'black'
-    this.ctx.font = 'bold 32px sans-serif'
-    this.ctx.fillText(this.level, this.lavelInfo.value.x, this.lavelInfo.value.y)
-    this.ctx.drawImage(
-      this.assetsLoader.get('level_icon'),
+    this.renderText(this.level, this.lavelInfo.value.x, this.lavelInfo.value.y)
+    this.renderImg(
+      'level_icon',
       this.lavelInfo.img.x,
       this.lavelInfo.img.y,
       this.lavelInfo.img.width,
@@ -83,11 +79,9 @@ export class SidebarStats {
   renderLivesInfo() {
     this.playersLives.forEach((value, i) => {
       const item = this.livesInfo[i]
-      this.ctx.fillStyle = 'black'
-      this.ctx.font = 'bold 32px sans-serif'
-      this.ctx.fillText(`${i + 1} P`, item.text.x, item.text.y)
-      this.ctx.drawImage(this.assetsLoader.get('lives_icon'), item.img.x, item.img.y, item.img.width, item.img.height)
-      this.ctx.fillText(value, item.value.x, item.value.y)
+      this.renderText(`${i + 1} P`, item.text.x, item.text.y)
+      this.renderImg('lives_icon', item.img.x, item.img.y, item.img.width, item.img.height)
+      this.renderText(value, item.value.x, item.value.y)
     })
   }
 

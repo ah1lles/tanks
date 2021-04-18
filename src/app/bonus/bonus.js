@@ -8,12 +8,14 @@ export class Bonus extends Entity {
     super(...args)
 
     this.idxOfSprite = idxOfSprite
-    this.animationDelay = 0.5
-    this.animationTime = 0
     this.idxSpriteTansparent = idxOfSpriteTransparent
     this.showSprite = false
     this.zindex = 4
     this.finished = false
+    this.points = 500
+    this.animation = this.after(0.4, () => {
+      this.showSprite = !this.showSprite
+    })
   }
 
   get dx() {
@@ -34,13 +36,7 @@ export class Bonus extends Entity {
   setBunusEffect() {}
 
   update(dt, others) {
-    this.animationTime += dt
-
-    if (this.animationTime > this.animationDelay) {
-      this.animationTime = 0
-      this.showSprite = !this.showSprite
-    }
-
+    this.animation(dt)
     this.checkOthersCollision(others)
   }
 
@@ -51,6 +47,11 @@ export class Bonus extends Entity {
   destroy(item, others) {
     this.setBunusEffect(item, others)
     this.makeSound()
+
+    if (item.type === 'player') {
+      this.dispatcher.dispatch('countPoints', { player: item, points: this.points })
+      this.dispatcher.dispatch('createPoints', { points: this.points, host: this })
+    }
     this.finished = true
   }
 }

@@ -15,6 +15,16 @@ export class Helper {
     return a.x >= FIELD_START_X && a.y >= FIELD_START_Y && a.x + a.width <= FIELD_END_X && a.y + a.height <= FIELD_END_Y
   }
 
+  static setToStorage(key, value) {
+    localStorage.setItem(key, JSON.stringify(value))
+  }
+
+  static getFromStorage(key) {
+    const data = localStorage.getItem(key)
+
+    return data ? JSON.parse(data) : null
+  }
+
   // static dispatchEvent(name, data) {
   //   document.dispatchEvent(
   //     new CustomEvent(name, {

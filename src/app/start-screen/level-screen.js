@@ -1,18 +1,20 @@
 import { MAP_SIZE_X, MAP_SIZE_Y, TILE_SIZE } from '../constants'
+import { Base } from '../base'
 import { MAPS } from '../maps'
-import { AudioApi } from '../audio'
-import { Canvas } from '../canvas'
-import { Dispatcher } from '../dispatcher'
 import size from 'lodash/size'
 
-export class LevelScreen {
+export class LevelScreen extends Base {
   constructor(canChangeLevel, level) {
+    super()
+
     this.canChangeLevel = canChangeLevel || false
     this.level = level
     this.startGame = !this.canChangeLevel
-    this.startingDelay = 1.5
-    this.startingTime = 0
     this.soundLauched = false
+    this.starting = this.after(1.5, () => {
+      this.startGame = false
+      this.dispatcher.dispatch('chooseLevel', { level: this.level })
+    })
 
     this.keyDownHandler = ({ code }) => {
       if (this.startGame) return
@@ -36,18 +38,6 @@ export class LevelScreen {
     document.addEventListener('keydown', this.keyDownHandler)
   }
 
-  get dispatcher() {
-    return Dispatcher.getInstance()
-  }
-
-  get audioApi() {
-    return AudioApi.getInstance()
-  }
-
-  get ctx() {
-    return Canvas.getInstance().ctx
-  }
-
   makeSound() {
     if (!this.soundLauched) {
       this.audioApi.play('startLevel')
@@ -59,19 +49,13 @@ export class LevelScreen {
     this.ctx.fillStyle = '#747474'
     this.ctx.fillRect(0, 0, MAP_SIZE_X, MAP_SIZE_Y)
     this.ctx.fillStyle = 'black'
-    this.ctx.font = '42px sans-serif'
+    this.ctx.font = 'bold 42px sans-serif'
     this.ctx.fillText(`Level ${this.level}`, MAP_SIZE_X / 2 - TILE_SIZE * 2, MAP_SIZE_Y / 2)
   }
 
   update(dt) {
     if (this.startGame) {
-      this.startingTime += dt
-    }
-
-    if (this.startingTime > this.startingDelay) {
-      this.startGame = false
-      this.startingTime = 0
-      this.dispatcher.dispatch('chooseLevel', { level: this.level })
+      this.starting(dt)
     }
   }
 

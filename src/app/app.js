@@ -12,6 +12,7 @@ import {
   FIELD_END_X,
   ENEMY_SPAWN_DELAY
 } from './constants.js'
+import { Base } from './base.js'
 import { MAPS, TilesMap } from './maps.js'
 import { Player } from './player/player.js'
 import { Bullet } from './bullet/bullet.js'
@@ -25,6 +26,9 @@ import { SpawnAnimation } from './bonus/spawn-animation.js'
 import { StartScreen } from './start-screen/start-screen.js'
 import { LevelScreen } from './start-screen/level-screen.js'
 import { SidebarStats } from './stats/sidebar-stats.js'
+import { StatsPlayers } from './stats/player-stats.js'
+import { Point } from './stats/point.js'
+import { StatsScreen } from './stats/stats-screen.js'
 import filter from 'lodash/filter'
 import map from 'lodash/map'
 import invokeMap from 'lodash/invokeMap'
@@ -34,13 +38,12 @@ import concat from 'lodash/concat'
 import difference from 'lodash/difference'
 import initial from 'lodash/initial'
 
-export class App {
-  constructor(ctx, dispatcher, audioApi, options) {
-    this.ctx = ctx
-    this.dispatcher = dispatcher
-    this.audioApi = audioApi
-    this.options = { ...options }
-    this.level = this.options.level || 1
+export class App extends Base {
+  constructor() {
+    super()
+
+    this.playerLives = 2
+    this.level = 1
     this.pause = false
     this.pausePressed = false
     this.lastTime = 0
@@ -59,6 +62,7 @@ export class App {
     this.headquarters = null
     this.startScreen = null
     this.levelScreen = null
+    this.statsScreen = null
     this.sidebarStats = null
     this.hardMode = false
     this.freezeEntities = false
@@ -70,7 +74,7 @@ export class App {
     this.playersOptions = {
       0: {
         keys: { ArrowUp: 'Up', ArrowRight: 'Right', ArrowDown: 'Down', ArrowLeft: 'Left', Space: 'Attack' },
-        lives: this.options.playerLives,
+        lives: this.playerLives,
         speed: PLAYER_SPEED,
         x: FIELD_START_X + TILE_SIZE * 8,
         y: FIELD_END_Y - TILE_SIZE * 2,
@@ -80,7 +84,7 @@ export class App {
       },
       1: {
         keys: { KeyW: 'Up', KeyD: 'Right', KeyS: 'Down', KeyA: 'Left', KeyZ: 'Attack' },
-        lives: this.options.playerLives,
+        lives: this.playerLives,
         speed: PLAYER_SPEED,
         x: FIELD_START_X + TILE_SIZE * 16,
         y: FIELD_END_Y - TILE_SIZE * 2,
@@ -101,14 +105,15 @@ export class App {
     this.dispatcher.subscribe('playerDestroyed', e => this.handlePlayerDestroying())
     this.dispatcher.subscribe('headquartersDestroyed', e => this.handleHeadquartersDestroying())
     this.dispatcher.subscribe('clockBonusActivated', e => this.handleClockBonusActivation(e.data))
-    this.dispatcher.subscribe('clockBonusActivated', e => this.handleClockBonusActivation(e.data))
     this.dispatcher.subscribe('helmetBonusActivated', e => this.handleHelmetBonusActivation(e.data))
     this.dispatcher.subscribe('buildNewHeadquartersTiles', e => this.handleUpdateNewHeadquarterTiles(e.data))
     this.dispatcher.subscribe('returnBackHeadquartersTiles', e => this.handleReturnBackHeadquarterTiles(e.data))
     this.dispatcher.subscribe('createSpawnAnimation', e => this.handleSpawnAnimationCreation(e.data))
     this.dispatcher.subscribe('getStartSettings', e => this.handleGetStartSettings(e.data))
     this.dispatcher.subscribe('chooseLevel', e => this.handleChoosingLevel(e.data))
+    this.dispatcher.subscribe('statsScreenFinished', e => this.handleStatsScreenFinishing())
     this.dispatcher.subscribe('levelCompleted', e => this.handleLevelCompleted())
+    this.dispatcher.subscribe('createPoints', e => this.handlePointsCreation(e.data))
 
     window.addEventListener('focus', () => {
       if (this.pause && !this.pausePressed && this.gameStarted) {
@@ -122,7 +127,9 @@ export class App {
       }
     })
 
+    this.statsPlayers = new StatsPlayers()
     this.startScreen = new StartScreen()
+    this.createPlayers()
     this.lastTime = Date.now()
     this.loop()
   }
@@ -142,14 +149,26 @@ export class App {
     this.start()
   }
 
+  handleStatsScreenFinishing() {
+    if (this.gameOver) {
+    } else {
+      this.statsScreen = null
+      this.level++
+      if (this.level <= size(MAPS)) {
+        this.levelScreen = new LevelScreen(false, this.level)
+      }
+    }
+  }
+
   start() {
+    this.resetBonuses()
     this.gameStarted = true
     this.enemyFactory = new EnemyFactory(this.playersCount > 1 ? 6 : 4, this.hardMode, this.level)
     this.bonusFactory = new BonusFactory()
     this.headquarters = new Headquarters()
     this.sidebarStats = new SidebarStats()
     this.createTiles()
-    this.createPlayers()
+    this.updatePlayersForNewLevel()
     this.createPlayerSpawnAnimations()
     this.createEnemyMarkers()
   }
@@ -157,11 +176,12 @@ export class App {
   handleLevelCompleted() {
     this.enemyFactory.destroy()
     this.enemyFactory = null
-    this.level++
+    this.gameStarted = false
+    this.createStatsScreen()
+  }
 
-    if (this.level <= size(MAPS)) {
-      this.levelScreen = new LevelScreen(false, this.level)
-    }
+  updatePlayersForNewLevel() {
+    invokeMap(this.players, 'updateForNewLevel')
   }
 
   pauseGame(bool) {
@@ -182,12 +202,16 @@ export class App {
   handlePlayerDestroying() {
     if (size(filter(this.players, { isOver: true })) === this.playersCount) {
       this.gameOver = true
+      this.gameStarted = false
+      this.createStatsScreen()
     }
   }
 
   handleHeadquartersDestroying() {
     if (this.headquarters.destroyed) {
       this.gameOver = true
+      this.gameStarted = false
+      this.createStatsScreen()
     }
   }
 
@@ -214,10 +238,14 @@ export class App {
 
   handleSpawnAnimationCreation(data) {
     this.spawnAnimations.push(
-      new SpawnAnimation(7, null, true, data.duration, data.x, data.y, TILE_SIZE * 2, TILE_SIZE * 2, [
+      new SpawnAnimation(7, data.speed, true, data.duration, data.x, data.y, TILE_SIZE * 2, TILE_SIZE * 2, [
         'spawn_animation'
       ])
     )
+  }
+
+  handlePointsCreation({ points, host }) {
+    this.points.push(new Point(points, host.x, host.y, host.width, host.height))
   }
 
   handleEnemyCreation(data) {
@@ -239,6 +267,38 @@ export class App {
     this.freezeEntities = true
     this.freezingLimit = limit
     this.bonusOwnerType = bonusOwnerType
+    this.freezing = this.after(limit, entitiesName => {
+      this.freezeEntities = false
+      invokeMap(this[entitiesName], 'unfreezeTank')
+    })
+  }
+
+  resetBonuses() {
+    if (this.freezeEntities) {
+      this.updateFreezingTime(this.freezingLimit)
+    }
+    this.helmetOverlays = []
+  }
+
+  resetFreezing(entitiesName) {
+    this.freezeEntities = false
+    invokeMap(this[entitiesName], 'unfreezeTank')
+  }
+
+  updateFreezingTime(dt) {
+    if (!this.freezeEntities) return
+
+    const entitiesName = this.bonusOwnerType === 'player' ? 'enemies' : 'players'
+
+    invokeMap(this[entitiesName], 'freezeTank')
+
+    this.freezing(dt, entitiesName)
+  }
+
+  createStatsScreen() {
+    if (!this.statsScreen) {
+      this.statsScreen = new StatsScreen(this.statsPlayers.getStats(), this.level, this.players)
+    }
   }
 
   createEnemyMarkers() {
@@ -255,22 +315,6 @@ export class App {
 
       return new Entity(x, y, TILE_SIZE, TILE_SIZE, ['enemy_indicator'])
     })
-  }
-
-  updateFreezingTime(dt) {
-    if (!this.freezeEntities) return
-
-    this.freezingTime += dt
-
-    const entitiesName = this.bonusOwnerType === 'player' ? 'enemies' : 'players'
-
-    invokeMap(this[entitiesName], 'freezeTank')
-
-    if (this.freezingTime > this.freezingLimit) {
-      this.freezeEntities = false
-      this.freezingTime = 0
-      invokeMap(this[entitiesName], 'unfreezeTank')
-    }
   }
 
   createPlayerSpawnAnimations() {
@@ -311,6 +355,8 @@ export class App {
     let x = 0
     let y = 0
 
+    this.tiles = []
+
     map.forEach((v, i) => {
       if (i % FIELD_TILES_X === 0) {
         x = 0
@@ -347,6 +393,8 @@ export class App {
       this.players,
       'update',
       dt,
+      this.pause,
+      this.gameStarted,
       [...this.enemies, ...filter(this.players, { destroyed: false })],
       filter(this.tiles, { passable: false, destroyed: false }),
       this.headquarters
@@ -407,6 +455,11 @@ export class App {
     invokeMap(this.spawnAnimations, 'update', dt)
   }
 
+  updatePoints(dt) {
+    this.points = filter(this.points, { destroyed: false })
+    invokeMap(this.points, 'update', dt)
+  }
+
   renderMap() {
     this.ctx.fillStyle = '#747474'
     this.ctx.fillRect(0, 0, MAP_SIZE_X, MAP_SIZE_Y)
@@ -426,10 +479,13 @@ export class App {
     this.updateHelmetOverlays(dt)
     this.updateHeadquarters(dt)
     this.updateSpawnAnimations(dt)
+    this.updatePoints(dt)
     this?.enemyFactory?.update(dt, this.enemies)
     this?.startScreen?.update(dt)
     this?.levelScreen?.update(dt)
+    this?.statsPlayers?.update(dt, this.level)
     this?.sidebarStats?.update(dt, this.players, this.level)
+    this?.statsScreen?.update(dt)
   }
 
   render(dt) {
@@ -447,10 +503,12 @@ export class App {
           ...this.helmetOverlays,
           ...this.enemyMarkers,
           ...this.spawnAnimations,
+          ...this.points,
           this.headquarters,
           this.sidebarStats,
           this.startScreen,
-          this.levelScreen
+          this.levelScreen,
+          this.statsScreen
         ],
         e => e && e.zindex
       ),

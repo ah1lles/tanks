@@ -13,8 +13,6 @@ export class Headquarters extends Entity {
     this.destroyable = true
     this.passable = false
     this.gainHeadquarters = false
-    this.chovelLimit = 0
-    this.chovelTime = 0
     this.savedHeadquartersTiles = []
     this.newHeadquartersTiles = []
     this.defensiveTiles = [
@@ -27,6 +25,7 @@ export class Headquarters extends Entity {
       { x: this.x + TILE_SIZE * 2, y: this.y },
       { x: this.x + TILE_SIZE * 2, y: this.y + TILE_SIZE }
     ]
+    this.destroying = this.after(3, () => this.dispatcher.dispatch('headquartersDestroyed'))
 
     this.dispatcher.subscribe('chovelBonusActivated', e => this.handleChovelBonusActivation(e.data))
   }
@@ -69,26 +68,28 @@ export class Headquarters extends Entity {
       newTiles: this.newHeadquartersTiles
     })
     this.gainHeadquarters = true
-    this.chovelLimit += limit
+    this.activation = this.after(limit, () => this.returnBack())
+  }
+
+  returnBack() {
+    this.gainHeadquarters = false
+    this.dispatcher.dispatch('returnBackHeadquartersTiles', {
+      oldTiles: this.savedHeadquartersTiles,
+      newTiles: this.newHeadquartersTiles
+    })
+    this.savedHeadquartersTiles = []
+    this.newHeadquartersTiles = []
   }
 
   update(dt, tiles) {
     if (!this.gainHeadquarters) {
       this.savedHeadquartersTiles = filter(tiles, tile => this.compareTilesByPosition(tile, this.defensiveTiles))
     } else {
-      this.chovelTime += dt
+      this.activation(dt)
+    }
 
-      if (this.chovelTime > this.chovelLimit) {
-        this.gainHeadquarters = false
-        this.chovelTime = 0
-        this.chovelLimit = 0
-        this.dispatcher.dispatch('returnBackHeadquartersTiles', {
-          oldTiles: this.savedHeadquartersTiles,
-          newTiles: this.newHeadquartersTiles
-        })
-        this.savedHeadquartersTiles = []
-        this.newHeadquartersTiles = []
-      }
+    if (this.destroyed) {
+      this.destroying(dt)
     }
   }
 
@@ -96,7 +97,6 @@ export class Headquarters extends Entity {
     super.destroy()
     this.createExplosion()
     this.audioApi.play('playerDied')
-    this.dispatcher.dispatch('headquartersDestroyed')
     this.passable = true
   }
 }

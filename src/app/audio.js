@@ -10,6 +10,7 @@ import increaseCountOfLives from '../assets/increased_count_of_lives.mp3'
 import hitAndDestroyTile from '../assets/hit_and_destroy_tile.mp3'
 import awaitingPlayer from '../assets/awaiting_player.mp3'
 import movingPlayer from '../assets/moving_player.mp3'
+import statsNumCount from '../assets/stats_num_count_sound.mp3'
 
 export class AudioApi {
   constructor() {
@@ -26,6 +27,7 @@ export class AudioApi {
       this.hitAndDestroyTile = new Audio(hitAndDestroyTile)
       this.awaitingPlayer = new Audio(awaitingPlayer)
       this.movingPlayer = new Audio(movingPlayer)
+      this.statsNumCount = new Audio(statsNumCount)
 
       this.awaitingPlayer.loop = true
       this.awaitingPlayer.volume = 0.4

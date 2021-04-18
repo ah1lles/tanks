@@ -5,6 +5,7 @@ export class HelmetOverlay extends Animation {
     super(...args)
 
     this.host = host
+    this.speed = this.speed * 1.5
 
     this.host?.makeTankIndestructible()
   }

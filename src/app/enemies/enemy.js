@@ -14,17 +14,15 @@ export class Enemy extends Tank {
     this._idxSprite = 0
     this.upgrade = 0
     this.maxUpgrade = 0
-    this.deadlockDelay = 50
-    this.deadlockTime = 0
-    this.movingDelay = 200
-    this.movingTime = 0
-    this.shootingDelay = 50
-    this.shootingTime = 50
     this.bulletFrom = 'enemy'
-    this.bonusAnimationDelay = 50
-    this.bonusAnimationTime = 0
     this.idxBonusSprite = this.sprites.length - 1
     this.showBonusSprite = false
+    this.moving = this.after(5, () => this.determineRandomDirection())
+    this.shooting = this.after(0.5, () => this.shoutingDecision())
+    this.bonusAnimation = this.after(0.2, () => {
+      this.showBonusSprite = !this.showBonusSprite
+    })
+    this.deadlock = this.after(0.3, () => this.changeDirectionWhenLocked())
   }
 
   get idxSprite() {
@@ -44,17 +42,15 @@ export class Enemy extends Tank {
   }
 
   shoutingDecision() {
-    if (this.generateChanceOfShooting() < 5) {
+    if (this.generateChanceOfShooting() < 50) {
       this.shoot()
-      this.shootingTime = 0
     }
   }
 
   determineRandomDirection() {
-    if (this.generateChanceOfChangingDirection() < 5) {
+    if (this.generateChanceOfChangingDirection() < 40) {
       this.changeDirection(this.getNewPosition())
-      this.deadlockTime = 0
-      this.movingTime = 0
+      this.deadlock.resetTime()
     }
   }
 
@@ -81,12 +77,8 @@ export class Enemy extends Tank {
   }
 
   changeDirectionWhenLocked(dt) {
-    this.deadlockTime += 200 * dt
-    if (this.deadlockTime > this.deadlockDelay) {
-      this.changeDirection(this.getNewPosition())
-      this.deadlockTime = 0
-      this.movingTime = 0
-    }
+    this.changeDirection(this.getNewPosition())
+    this.moving.resetTime()
   }
 
   reactOnCollidion(dt) {
@@ -100,40 +92,33 @@ export class Enemy extends Tank {
     super.update(dt, ...args)
 
     if (!this.checkFieldEnd()) {
-      this.changeDirectionWhenLocked(dt)
+      this.deadlock(dt)
     }
 
     if (this.tankIsLocked()) {
-      this.changeDirectionWhenLocked(dt)
+      this.deadlock(dt)
     }
 
-    this.movingTime += 50 * dt
-    this.shootingTime += 100 * dt
-
-    if (this.movingTime > this.movingDelay) {
-      this.determineRandomDirection()
-    }
-
-    if (this.shootingTime > this.shootingDelay) {
-      this.shoutingDecision()
-    }
+    this.moving(dt)
+    this.shooting(dt)
 
     if (this.bonus) {
-      this.bonusAnimationTime += 200 * dt
-
-      if (this.bonusAnimationTime > this.bonusAnimationDelay) {
-        this.bonusAnimationTime = 0
-        this.showBonusSprite = !this.showBonusSprite
-      }
+      this.bonusAnimation(dt)
     }
   }
 
-  destroy(forceDestroy) {
+  destroy(bullet, forceDestroy) {
+    if (this.indestructible) return
+
     this.makeBonusSound()
     this.audioApi.play('enemyDied')
 
     if (!forceDestroy) {
       this.createBonus()
+    }
+    if (bullet?.from === 'player') {
+      this.dispatcher.dispatch('countPoints', { player: bullet.host, points: this.points, enemyId: this.enemyId })
+      this.dispatcher.dispatch('createPoints', { points: this.points, host: this })
     }
     this.dispatcher.dispatch('enemyWasDestroyed')
     super.destroy()

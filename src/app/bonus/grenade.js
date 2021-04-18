@@ -7,6 +7,6 @@ export class Grenade extends Bonus {
   }
 
   setBunusEffect(item, others) {
-    invokeMap(others, 'destroy', true)
+    invokeMap(others, 'destroy', null, true)
   }
 }

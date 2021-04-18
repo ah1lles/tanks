@@ -1,11 +1,11 @@
 import { MAP_SIZE_X, MAP_SIZE_Y, TILE_SIZE } from '../constants'
-import { AssetsLoader } from '../assets-loader'
-import { Canvas } from '../canvas'
-import { Dispatcher } from '../dispatcher'
+import { Base } from '../base'
 import size from 'lodash/size'
 
-export class StartScreen {
+export class StartScreen extends Base {
   constructor() {
+    super()
+
     this.currentLabel = 0
     this.hardMode = false
     this.playersCount = 1
@@ -55,18 +55,6 @@ export class StartScreen {
     }
 
     document.addEventListener('keydown', this.keyDownHandler)
-  }
-
-  get assetsLoader() {
-    return AssetsLoader.getInstance()
-  }
-
-  get dispatcher() {
-    return Dispatcher.getInstance()
-  }
-
-  get ctx() {
-    return Canvas.getInstance().ctx
   }
 
   renderLogo() {
