@@ -2,6 +2,12 @@ import tank_1 from '../assets/tank_1.png'
 import tank_2 from '../assets/tank_2.png'
 import tank_3 from '../assets/tank_3.png'
 import tank_4 from '../assets/tank_4.png'
+import tank_5 from '../assets/tank_5.png'
+import tank2_1 from '../assets/tank2_1.png'
+import tank2_2 from '../assets/tank2_2.png'
+import tank2_3 from '../assets/tank2_3.png'
+import tank2_4 from '../assets/tank2_4.png'
+import tank2_5 from '../assets/tank2_5.png'
 import enemy_1 from '../assets/enemy_1.png'
 import enemy_2 from '../assets/enemy_2.png'
 import enemy_3 from '../assets/enemy_3.png'
@@ -32,12 +38,19 @@ import spawn_animation from '../assets/spawn_animation.png'
 import logo from '../assets/logo.png'
 import arrow_right from '../assets/arrow_right.png'
 import arrow_left from '../assets/arrow_left.png'
+import game_over from '../assets/game-over.png'
 
 export const resources = {
   tank_1,
   tank_2,
   tank_3,
   tank_4,
+  tank_5,
+  tank2_1,
+  tank2_2,
+  tank2_3,
+  tank2_4,
+  tank2_5,
   enemy_1,
   enemy_2,
   enemy_3,
@@ -67,5 +80,6 @@ export const resources = {
   spawn_animation,
   logo,
   arrow_right,
-  arrow_left
+  arrow_left,
+  game_over
 }

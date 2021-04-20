@@ -46,16 +46,20 @@ export class StatsScreen extends Base {
     this.totals = zipObject(
       this.playersIds,
       map(this.playersIds, v => {
-        return sum(values(this.stats[this.level][v]), (a, b) => a + b)
+        return sum(values(this.stats[this.level] && this.stats[this.level][v]), (a, b) => a + b) || 0
       })
     )
     this.shouldRenderTotals = false
     this.idx = 0
     this.needToChangeIdx = {}
-    this.bestScore = Helper.getFromStorage('TheBestScore') || 0
+    this.bestScore = this.getBestScore()
     this.row = this.after(1, dt => this.updateRow(dt), null, true)
     this.pointing = this.after(0.2, () => this.updatePoints(), 0.2)
-    this.finishing = this.after(3, () => this.dispatcher.dispatch('statsScreenFinished'))
+    this.finishing = this.after(3, () => this.dispatcher.dispatch('statsScreenFinished'), null, false, true)
+  }
+
+  getBestScore() {
+    return Helper.getFromStorage('TheBestScore') || 0
   }
 
   updateRow(dt) {
@@ -66,7 +70,7 @@ export class StatsScreen extends Base {
     })
 
     this.playersIds.forEach(id => {
-      if (!this.stats[this.level][id][this.idx + 1]) {
+      if (!(this.stats[this.level] && this.stats[this.level][id] && this.stats[this.level][id][this.idx + 1])) {
         this.needToChangeIdx[id] = true
       }
     })
@@ -91,7 +95,7 @@ export class StatsScreen extends Base {
 
   updatePoints() {
     this.playersIds.forEach(id => {
-      const val = this.stats[this.level][id][this.idx + 1]
+      const val = this.stats[this.level] && this.stats[this.level][id] && this.stats[this.level][id][this.idx + 1]
 
       if (this.values[id][this.idx].enemies === val || !val) {
         this.needToChangeIdx[id] = true
@@ -201,7 +205,7 @@ export class StatsScreen extends Base {
       this.finishing(dt)
     }
 
-    if (this.idx < size(keys(enemiesPoints))) {
+    if (this.idx < size(keys(enemiesPoints)) && !this.finish) {
       this.row(dt, dt)
     }
   }

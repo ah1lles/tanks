@@ -7,13 +7,14 @@ import filter from 'lodash/filter'
 import difference from 'lodash/difference'
 
 export class Bullet extends Entity {
-  constructor(host, from, type, piercing, direction = 'Up', ...args) {
+  constructor(host, from, type, piercing, canDestroyTrees, direction = 'Up', ...args) {
     super(...args)
 
     this.host = host
     this.from = from
     this.type = type
     this.piercing = piercing
+    this.canDestroyTrees = canDestroyTrees || false
     this.direction = direction
     this.passable = false
     this.destroyable = true
@@ -83,12 +84,16 @@ export class Bullet extends Entity {
     )
   }
 
-  update(bullets, tiles, enemies, players, headquarters) {
+  update(bullets, tiles, enemies, players, headquarters, trees) {
     let shouldDestroyBullet = false
 
     if (this.checkFieldEnd()) {
       if (this.checkItemsCollision(tiles)) {
         shouldDestroyBullet = true
+      }
+
+      if (this.canDestroyTrees) {
+        this.checkItemsCollision(trees)
       }
 
       if (this.checkOtherBulletsCollision(this.getOtherBullets(bullets))) {
@@ -102,7 +107,7 @@ export class Bullet extends Entity {
           shouldDestroyBullet = true
         }
 
-        if (Helper.collision(headquarters, this) && !headquarters.destroyed) {
+        if (headquarters && Helper.collision(headquarters, this) && !headquarters.destroyed) {
           headquarters.destroy()
           shouldDestroyBullet = true
         }

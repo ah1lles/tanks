@@ -23,7 +23,9 @@ export class Base {
     return AudioApi.getInstance()
   }
 
-  after(time, func, startTime, preventAutoResetTime) {
+  after(time, func, startTime, preventAutoResetTime, callOnce) {
+    let isCalled = false
+
     const check = (dt, ...args) => {
       check.timeCounter += dt
 
@@ -31,7 +33,15 @@ export class Base {
         if (!preventAutoResetTime) {
           check.timeCounter = 0
         }
-        func(...args)
+
+        if (callOnce) {
+          if (!isCalled) {
+            isCalled = true
+            func(...args)
+          }
+        } else {
+          func(...args)
+        }
       }
     }
 

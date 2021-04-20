@@ -59,10 +59,16 @@ export class Tank extends Entity {
   set bulletType(val) {}
 
   get bulletPiercing() {
-    return this.upgrade > 2 ? true : false
+    return this.upgrade > 2
   }
 
   set bulletPiercing(val) {}
+
+  get canDestroyTrees() {
+    return this.upgrade > 3
+  }
+
+  set canDestroyTrees(val) {}
 
   get nextShootCoef() {
     return this.upgrade > 1 ? 300 : 200
@@ -99,6 +105,7 @@ export class Tank extends Entity {
       from: this.bulletFrom,
       type: this.bulletType,
       piercing: this.bulletPiercing,
+      canDestroyTrees: this.canDestroyTrees,
       direction: this.direction
     })
   }
@@ -185,7 +192,7 @@ export class Tank extends Entity {
   }
 
   checkHeadquartersCollision(headquarters) {
-    return !headquarters.destroyed && Helper.collision(headquarters, this)
+    return headquarters && !headquarters.destroyed && Helper.collision(headquarters, this)
   }
 
   checkOtherTanksCollision(others, posDiff) {

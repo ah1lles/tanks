@@ -25,7 +25,7 @@ export class Headquarters extends Entity {
       { x: this.x + TILE_SIZE * 2, y: this.y },
       { x: this.x + TILE_SIZE * 2, y: this.y + TILE_SIZE }
     ]
-    this.destroying = this.after(3, () => this.dispatcher.dispatch('headquartersDestroyed'))
+    this.destroying = this.after(3, () => this.dispatcher.dispatch('headquartersDestroyed'), null, false, true)
 
     this.dispatcher.subscribe('chovelBonusActivated', e => this.handleChovelBonusActivation(e.data))
   }
@@ -89,6 +89,7 @@ export class Headquarters extends Entity {
     }
 
     if (this.destroyed) {
+      this.dispatcher.dispatch('setGameOver')
       this.destroying(dt)
     }
   }

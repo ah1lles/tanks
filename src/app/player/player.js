@@ -5,16 +5,16 @@ import values from 'lodash/values'
 import includes from 'lodash/includes'
 
 export class Player extends Tank {
-  constructor(keys, lives, ...args) {
+  constructor(id, keys, lives, ...args) {
     super(...args)
 
-    this.id = Player.getPlayerId()
+    this.id = id
     this.type = 'player'
     this.keys = keys
     this.lives = lives
     this.direction = 'Up'
     this.upgrade = 0
-    this.maxUpgrade = 3
+    this.maxUpgrade = 4
     this.keysPressed = {}
     this.appearing = false
     this.bulletFrom = 'player'
@@ -31,15 +31,10 @@ export class Player extends Tank {
     this.pointsCounter = this.pointsForFreeLife
     this.lostControls = false
     this.restore = this.after(this.restoreDelay, () => this.restorePlayer())
+    this.destroying = this.after(3, () => this.dispatcher.dispatch('playerDestroyed'), null, false, true)
 
     document.addEventListener('keydown', e => this.keyDownHandler(e.code))
     document.addEventListener('keyup', e => this.keyUpHandler(e.code))
-  }
-
-  static playerId = 0
-
-  static getPlayerId() {
-    return ++Player.playerId
   }
 
   get upgrade() {
@@ -112,7 +107,7 @@ export class Player extends Tank {
   addScore(points) {
     this.score += points
     this.pointsCounter -= points
-    console.log('Player score: ', this.score)
+
     if (this.pointsCounter <= 0) {
       this.pointsCounter = this.pointsForFreeLife
       this.increaseAmountOfLives()
@@ -203,9 +198,13 @@ export class Player extends Tank {
 
     super.update(dt, ...args)
 
-    if (this.destroyed && !this.isOver) {
+    if (this.destroyed && !this.isOver && gameStarted) {
       this.createSpawnAnimation()
       this.restore(dt)
+    }
+
+    if (this.isOver) {
+      this.destroying(dt)
     }
   }
 
@@ -221,7 +220,7 @@ export class Player extends Tank {
 
     if (this.lives === 0) {
       this.isOver = true
-      this.dispatcher.dispatch('playerDestroyed')
+      this.dispatcher.dispatch('setGameOver')
     } else {
       this.lives--
       this.upgrade = 0

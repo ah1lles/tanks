@@ -29,6 +29,8 @@ import { SidebarStats } from './stats/sidebar-stats.js'
 import { StatsPlayers } from './stats/player-stats.js'
 import { Point } from './stats/point.js'
 import { StatsScreen } from './stats/stats-screen.js'
+import { GameOverScreen } from './game-over-screen/game-over-screen.js'
+import { NewScoreScreen } from './game-over-screen/new-score-screen.js'
 import filter from 'lodash/filter'
 import map from 'lodash/map'
 import invokeMap from 'lodash/invokeMap'
@@ -80,17 +82,17 @@ export class App extends Base {
         y: FIELD_END_Y - TILE_SIZE * 2,
         width: TILE_SIZE * 2,
         height: TILE_SIZE * 2,
-        sprites: ['tank_1', 'tank_2', 'tank_3', 'tank_4']
+        sprites: ['tank_1', 'tank_2', 'tank_3', 'tank_4', 'tank_5']
       },
       1: {
-        keys: { KeyW: 'Up', KeyD: 'Right', KeyS: 'Down', KeyA: 'Left', KeyZ: 'Attack' },
+        keys: { KeyW: 'Up', KeyD: 'Right', KeyS: 'Down', KeyA: 'Left', KeyQ: 'Attack' },
         lives: this.playerLives,
         speed: PLAYER_SPEED,
         x: FIELD_START_X + TILE_SIZE * 16,
         y: FIELD_END_Y - TILE_SIZE * 2,
         width: TILE_SIZE * 2,
         height: TILE_SIZE * 2,
-        sprites: ['tank_1', 'tank_2', 'tank_3', 'tank_4']
+        sprites: ['tank2_1', 'tank2_2', 'tank2_3', 'tank2_4', 'tank2_5']
       }
     }
   }
@@ -102,8 +104,8 @@ export class App extends Base {
     this.dispatcher.subscribe('createExplosion', e => this.handleExplosionCreation(e.data))
     this.dispatcher.subscribe('createEnemy', e => this.handleEnemyCreation(e.data))
     this.dispatcher.subscribe('createBonus', e => this.handleBonusCreation())
-    this.dispatcher.subscribe('playerDestroyed', e => this.handlePlayerDestroying())
-    this.dispatcher.subscribe('headquartersDestroyed', e => this.handleHeadquartersDestroying())
+    this.dispatcher.subscribe('playerDestroyed', e => this.handlePlayerOrHeadquartersDestroying())
+    this.dispatcher.subscribe('headquartersDestroyed', e => this.handlePlayerOrHeadquartersDestroying())
     this.dispatcher.subscribe('clockBonusActivated', e => this.handleClockBonusActivation(e.data))
     this.dispatcher.subscribe('helmetBonusActivated', e => this.handleHelmetBonusActivation(e.data))
     this.dispatcher.subscribe('buildNewHeadquartersTiles', e => this.handleUpdateNewHeadquarterTiles(e.data))
@@ -114,6 +116,9 @@ export class App extends Base {
     this.dispatcher.subscribe('statsScreenFinished', e => this.handleStatsScreenFinishing())
     this.dispatcher.subscribe('levelCompleted', e => this.handleLevelCompleted())
     this.dispatcher.subscribe('createPoints', e => this.handlePointsCreation(e.data))
+    this.dispatcher.subscribe('startScreen', e => this.createStartScreen())
+    this.dispatcher.subscribe('bestScoreScreen', e => this.bestScoreScreen(e.data))
+    this.dispatcher.subscribe('setGameOver', e => this.checkGameOver())
 
     window.addEventListener('focus', () => {
       if (this.pause && !this.pausePressed && this.gameStarted) {
@@ -127,41 +132,56 @@ export class App extends Base {
       }
     })
 
-    this.statsPlayers = new StatsPlayers()
     this.startScreen = new StartScreen()
-    this.createPlayers()
     this.lastTime = Date.now()
     this.loop()
   }
 
+  createStartScreen() {
+    this.clear()
+    this.startScreen = new StartScreen()
+  }
+
+  bestScoreScreen({ score }) {
+    this.newScoreScreen = new NewScoreScreen(score)
+  }
+
   handleGetStartSettings({ playersCount, hardMode }) {
+    this.statsPlayers = new StatsPlayers()
     this.playersCount = playersCount
     this.hardMode = hardMode
     this.startScreen.destroy()
     this.startScreen = null
+    this.createPlayers()
     this.levelScreen = new LevelScreen(true, 1)
   }
 
   handleChoosingLevel({ level }) {
     this.level = level
-    this.levelScreen.destroy()
-    this.levelScreen = null
     this.start()
   }
 
   handleStatsScreenFinishing() {
+    this.clear()
+
     if (this.gameOver) {
+      this.gameOverScreen = new GameOverScreen()
     } else {
-      this.statsScreen = null
       this.level++
+
       if (this.level <= size(MAPS)) {
         this.levelScreen = new LevelScreen(false, this.level)
+      } else {
+        // TODO: Сделать экран The End
+        this.createStartScreen()
       }
     }
   }
 
   start() {
     this.resetBonuses()
+    this.clear()
+    this.players = filter(this.players, { isOver: false })
     this.gameStarted = true
     this.enemyFactory = new EnemyFactory(this.playersCount > 1 ? 6 : 4, this.hardMode, this.level)
     this.bonusFactory = new BonusFactory()
@@ -173,9 +193,29 @@ export class App extends Base {
     this.createEnemyMarkers()
   }
 
-  handleLevelCompleted() {
-    this.enemyFactory.destroy()
+  clear() {
+    this.tiles = []
+    this.bullets = []
+    this.explosions = []
+    this.enemies = []
+    this.bonuses = []
+    this.helmetOverlays = []
+    this.enemyMarkers = []
+    this.spawnAnimations = []
+    this.headquarters = null
+    this.statsScreen = null
+    this.levelScreen?.destroy()
+    this.levelScreen = null
+    this.enemyFactory?.destroy()
     this.enemyFactory = null
+    this.gameOverScreen = null
+    this.newScoreScreen = null
+  }
+
+  handleLevelCompleted() {
+    if (this.gameOver) return
+
+    this.clear()
     this.gameStarted = false
     this.createStatsScreen()
   }
@@ -199,18 +239,15 @@ export class App extends Base {
     }
   }
 
-  handlePlayerDestroying() {
-    if (size(filter(this.players, { isOver: true })) === this.playersCount) {
+  checkGameOver() {
+    if (size(filter(this.players, { isOver: true })) === size(this.players) || this.headquarters.destroyed) {
       this.gameOver = true
       this.gameStarted = false
-      this.createStatsScreen()
     }
   }
 
-  handleHeadquartersDestroying() {
-    if (this.headquarters.destroyed) {
-      this.gameOver = true
-      this.gameStarted = false
+  handlePlayerOrHeadquartersDestroying() {
+    if (this.gameOver && !this.gameStarted) {
       this.createStatsScreen()
     }
   }
@@ -222,6 +259,7 @@ export class App extends Base {
         data.from,
         data.type,
         data.piercing,
+        data.canDestroyTrees,
         data.direction,
         data.x,
         data.y,
@@ -339,14 +377,24 @@ export class App extends Base {
     this.tiles = concat(difference(this.tiles, newTiles), oldTiles)
   }
 
-  createPlayer(keys, lives, speed, x, y, width, height, sprites) {
-    return new Player(keys, lives, speed, x, y, width, height, sprites)
+  createPlayer(id, keys, lives, speed, x, y, width, height, sprites) {
+    return new Player(id, keys, lives, speed, x, y, width, height, sprites)
   }
 
   createPlayers() {
     this.players = map(Array(this.playersCount === 2 || this.playersCount === 1 ? this.playersCount : 1), (v, i) => {
       const opts = this.playersOptions[i]
-      return this.createPlayer(opts.keys, opts.lives, opts.speed, opts.x, opts.y, opts.width, opts.height, opts.sprites)
+      return this.createPlayer(
+        i + 1,
+        opts.keys,
+        opts.lives,
+        opts.speed,
+        opts.x,
+        opts.y,
+        opts.width,
+        opts.height,
+        opts.sprites
+      )
     })
   }
 
@@ -371,8 +419,8 @@ export class App extends Base {
     })
   }
 
-  createBullet(host, from, type, piercing, direction, x, y, width, height, sprites) {
-    return new Bullet(host, from, type, piercing, direction, x, y, width, height, sprites)
+  createBullet(host, from, type, piercing, canDestroyTrees, direction, x, y, width, height, sprites) {
+    return new Bullet(host, from, type, piercing, canDestroyTrees, direction, x, y, width, height, sprites)
   }
 
   createExplosion(framesCount, x, y, width, height, sprites) {
@@ -416,7 +464,8 @@ export class App extends Base {
       filter(this.tiles, { passable: false, destroyable: true, destroyed: false }),
       this.enemies,
       filter(this.players, { destroyed: false }),
-      this.headquarters
+      this.headquarters,
+      filter(this.tiles, { type: 'tree', destroyed: false })
     )
     invokeMap(this.bullets, 'changePosition', dt)
   }
@@ -486,6 +535,8 @@ export class App extends Base {
     this?.statsPlayers?.update(dt, this.level)
     this?.sidebarStats?.update(dt, this.players, this.level)
     this?.statsScreen?.update(dt)
+    this?.gameOverScreen?.update(dt, this.players)
+    this?.newScoreScreen?.update(dt)
   }
 
   render(dt) {
@@ -508,7 +559,9 @@ export class App extends Base {
           this.sidebarStats,
           this.startScreen,
           this.levelScreen,
-          this.statsScreen
+          this.statsScreen,
+          this.gameOverScreen,
+          this.newScoreScreen
         ],
         e => e && e.zindex
       ),

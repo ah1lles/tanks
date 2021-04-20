@@ -83,7 +83,7 @@ export class EnemyFactory extends Base {
     })
     this.handlerEnemyDestroying = () => {
       this.destroyedEnemyCount++
-      this.allEnemiesWereDestroyed = this.destroyedEnemyCount === this.maxEnemies
+      this.allEnemiesWereDestroyed = this.destroyedEnemyCount >= this.maxEnemies
     }
 
     this.dispatcher.subscribe('enemyWasDestroyed', this.handlerEnemyDestroying)

@@ -11,6 +11,8 @@ import hitAndDestroyTile from '../assets/hit_and_destroy_tile.mp3'
 import awaitingPlayer from '../assets/awaiting_player.mp3'
 import movingPlayer from '../assets/moving_player.mp3'
 import statsNumCount from '../assets/stats_num_count_sound.mp3'
+import playerDefeat from '../assets/player_defeated.mp3'
+import newScore from '../assets/new_score.mp3'
 
 export class AudioApi {
   constructor() {
@@ -28,6 +30,8 @@ export class AudioApi {
       this.awaitingPlayer = new Audio(awaitingPlayer)
       this.movingPlayer = new Audio(movingPlayer)
       this.statsNumCount = new Audio(statsNumCount)
+      this.playerDefeat = new Audio(playerDefeat)
+      this.newScore = new Audio(newScore)
 
       this.awaitingPlayer.loop = true
       this.awaitingPlayer.volume = 0.4

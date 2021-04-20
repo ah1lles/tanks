@@ -4,6 +4,7 @@ export class Bricks extends Tile {
   constructor(...args) {
     super(...args)
 
+    this.type = 'bricks'
     this.passable = false
     this.destroyable = true
     this._dx = 0

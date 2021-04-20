@@ -10,7 +10,9 @@ export class Armor extends Tile {
 
   destroy(bullet) {
     if (bullet.piercing) {
-      this.audioApi.play('hitAndDestroyTile')
+      if (bullet.from === 'player') {
+        this.audioApi.play('hitAndDestroyTile')
+      }
       super.destroy()
     } else {
       if (bullet.from === 'player') {
