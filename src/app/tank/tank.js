@@ -160,7 +160,7 @@ export class Tank extends Entity {
         y = this.y + this.height / 2 - TILE_SIZE / 2 / 2
         break
       case 'Left':
-        x = this.x - TILE_SIZE / 2 / 2
+        x = this.x - TILE_SIZE / 2
         y = this.y + this.height / 2 - TILE_SIZE / 2 / 2
         break
       default:

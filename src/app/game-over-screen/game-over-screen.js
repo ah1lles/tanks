@@ -24,7 +24,7 @@ export class GameOverScreen extends Base {
   }
 
   setUpNewScore(score) {
-    Helper.setToStorage('TheBestScore', score)
+    Helper.setToStorage('TheBestScore', score || 0)
   }
 
   countPlayersScore(players) {

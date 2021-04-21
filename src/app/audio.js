@@ -13,6 +13,7 @@ import movingPlayer from '../assets/moving_player.mp3'
 import statsNumCount from '../assets/stats_num_count_sound.mp3'
 import playerDefeat from '../assets/player_defeated.mp3'
 import newScore from '../assets/new_score.mp3'
+import pausePressed from '../assets/pause_pressed.mp3'
 
 export class AudioApi {
   constructor() {
@@ -32,6 +33,7 @@ export class AudioApi {
       this.statsNumCount = new Audio(statsNumCount)
       this.playerDefeat = new Audio(playerDefeat)
       this.newScore = new Audio(newScore)
+      this.pausePressed = new Audio(pausePressed)
 
       this.awaitingPlayer.loop = true
       this.awaitingPlayer.volume = 0.4

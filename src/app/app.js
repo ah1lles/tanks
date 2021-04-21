@@ -31,6 +31,7 @@ import { Point } from './stats/point.js'
 import { StatsScreen } from './stats/stats-screen.js'
 import { GameOverScreen } from './game-over-screen/game-over-screen.js'
 import { NewScoreScreen } from './game-over-screen/new-score-screen.js'
+import { TextPopup } from './text-popup/text-popup.js'
 import filter from 'lodash/filter'
 import map from 'lodash/map'
 import invokeMap from 'lodash/invokeMap'
@@ -210,6 +211,7 @@ export class App extends Base {
     this.enemyFactory = null
     this.gameOverScreen = null
     this.newScoreScreen = null
+    this.gameOverPopup = null
   }
 
   handleLevelCompleted() {
@@ -229,7 +231,10 @@ export class App extends Base {
     if (!this.pause) {
       this.lastTime = Date.now()
       this.loop()
+    } else if (this.pausePressed) {
+      this.audioApi.play('pausePressed')
     }
+    this.pausePopup = this.pause ? new TextPopup('PAUSE') : null
   }
 
   keyDownHandler(key) {
@@ -244,10 +249,12 @@ export class App extends Base {
       this.gameOver = true
       this.gameStarted = false
     }
+    this.gameOverPopup = this.gameOver ? new TextPopup('Game Over', 150) : null
   }
 
   handlePlayerOrHeadquartersDestroying() {
     if (this.gameOver && !this.gameStarted) {
+      this.clear()
       this.createStatsScreen()
     }
   }
@@ -298,7 +305,7 @@ export class App extends Base {
     if (size(this.bonuses) > 0) {
       this.bonuses = []
     }
-    this.bonuses.push(this.bonusFactory.create(filter(this.tiles, { destroyed: false })))
+    this.bonuses.push(this.bonusFactory.create(filter(this.tiles, { destroyed: false }), this.headquarters))
   }
 
   handleClockBonusActivation({ limit, bonusOwnerType }) {
@@ -561,7 +568,9 @@ export class App extends Base {
           this.levelScreen,
           this.statsScreen,
           this.gameOverScreen,
-          this.newScoreScreen
+          this.newScoreScreen,
+          this.pausePopup,
+          this.gameOverPopup
         ],
         e => e && e.zindex
       ),

@@ -60,7 +60,12 @@ export class Bullet extends Entity {
   }
 
   getOtherBullets(bullets) {
-    return filter(difference(bullets, [this]), b => b.from !== this.from)
+    return filter(difference(bullets, [this]), b => {
+      if (b.from === 'player' && this.from === 'player') {
+        return true
+      }
+      return b.from !== this.from
+    })
   }
 
   checkOtherBulletsCollision(bullets) {
@@ -99,7 +104,7 @@ export class Bullet extends Entity {
       if (this.checkOtherBulletsCollision(this.getOtherBullets(bullets))) {
         shouldDestroyBullet = true
       } else {
-        if (this.from === 'player' && this.checkItemsCollision(enemies)) {
+        if (this.from === 'player' && this.checkItemsCollision([...enemies, ...difference(players, [this.host])])) {
           shouldDestroyBullet = true
         }
 

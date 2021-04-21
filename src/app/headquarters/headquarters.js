@@ -26,6 +26,7 @@ export class Headquarters extends Entity {
       { x: this.x + TILE_SIZE * 2, y: this.y + TILE_SIZE }
     ]
     this.destroying = this.after(3, () => this.dispatcher.dispatch('headquartersDestroyed'), null, false, true)
+    this.dispatchingGameOver = this.after(0.1, () => this.dispatcher.dispatch('setGameOver'), null, false, true)
 
     this.dispatcher.subscribe('chovelBonusActivated', e => this.handleChovelBonusActivation(e.data))
   }
@@ -51,7 +52,7 @@ export class Headquarters extends Entity {
     })
   }
 
-  handleChovelBonusActivation({ limit }) {
+  handleChovelBonusActivation({ limit, host }) {
     if (size(this.newHeadquartersTiles) > 0) {
       this.dispatcher.dispatch('returnBackHeadquartersTiles', {
         oldTiles: [],
@@ -59,9 +60,13 @@ export class Headquarters extends Entity {
       })
     }
 
-    this.newHeadquartersTiles = map(this.defensiveTiles, v => {
-      return new TilesMap[A].instant(v.x, v.y, TILE_SIZE, TILE_SIZE, TilesMap[A].sprites)
-    })
+    if (host.type === 'player') {
+      this.newHeadquartersTiles = map(this.defensiveTiles, v => {
+        return new TilesMap[A].instant(v.x, v.y, TILE_SIZE, TILE_SIZE, TilesMap[A].sprites)
+      })
+    } else {
+      this.newHeadquartersTiles = []
+    }
 
     this.dispatcher.dispatch('buildNewHeadquartersTiles', {
       oldTiles: this.savedHeadquartersTiles,
@@ -89,7 +94,7 @@ export class Headquarters extends Entity {
     }
 
     if (this.destroyed) {
-      this.dispatcher.dispatch('setGameOver')
+      this.dispatchingGameOver(dt)
       this.destroying(dt)
     }
   }

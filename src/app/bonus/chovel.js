@@ -9,6 +9,6 @@ export class Chovel extends Bonus {
   }
 
   setBunusEffect(item, others) {
-    this.dispatcher.dispatch('chovelBonusActivated', { limit: this.limit })
+    this.dispatcher.dispatch('chovelBonusActivated', { limit: this.limit, host: item })
   }
 }

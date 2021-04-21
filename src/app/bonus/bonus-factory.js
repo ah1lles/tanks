@@ -80,6 +80,17 @@ export class BonusFactory extends Base {
     return { x, y }
   }
 
+  getTilesFromHeadquarters(headquarters) {
+    if (!headquarters) return []
+
+    return [
+      { x: headquarters.x, y: headquarters.y, width: TILE_SIZE, height: TILE_SIZE },
+      { x: headquarters.x, y: headquarters.y + TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE },
+      { x: headquarters.x + TILE_SIZE, y: headquarters.y, width: TILE_SIZE, height: TILE_SIZE },
+      { x: headquarters.x + TILE_SIZE, y: headquarters.y + TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE }
+    ]
+  }
+
   getBonusTilesPos(pos) {
     return [
       { x: pos.x, y: pos.y },
@@ -113,10 +124,11 @@ export class BonusFactory extends Base {
     }
   }
 
-  create(tiles) {
+  create(tiles, headquarters) {
     const idx = this.getIdxOfNewBonus()
     const desc = this.bonuses[idx]
-    const pos = this.getBonusPosition(tiles)
+    const tilesHeadquarters = this.getTilesFromHeadquarters(headquarters)
+    const pos = this.getBonusPosition([...tiles, ...tilesHeadquarters])
 
     return new desc.instance(idx, 0, pos.x, pos.y, TILE_SIZE * 2, TILE_SIZE * 2, desc.sprite)
   }
