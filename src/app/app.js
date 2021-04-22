@@ -32,6 +32,7 @@ import { StatsScreen } from './stats/stats-screen.js'
 import { GameOverScreen } from './game-over-screen/game-over-screen.js'
 import { NewScoreScreen } from './game-over-screen/new-score-screen.js'
 import { TextPopup } from './text-popup/text-popup.js'
+import { TheEndScreen } from './game-over-screen/the-end-screen.js'
 import filter from 'lodash/filter'
 import map from 'lodash/map'
 import invokeMap from 'lodash/invokeMap'
@@ -66,6 +67,7 @@ export class App extends Base {
     this.startScreen = null
     this.levelScreen = null
     this.statsScreen = null
+    this.theEndScreen = null
     this.sidebarStats = null
     this.hardMode = false
     this.freezeEntities = false
@@ -118,7 +120,7 @@ export class App extends Base {
     this.dispatcher.subscribe('levelCompleted', e => this.handleLevelCompleted())
     this.dispatcher.subscribe('createPoints', e => this.handlePointsCreation(e.data))
     this.dispatcher.subscribe('startScreen', e => this.createStartScreen())
-    this.dispatcher.subscribe('bestScoreScreen', e => this.bestScoreScreen(e.data))
+    this.dispatcher.subscribe('newScoreScreen', e => this.createScoreScreen(e.data))
     this.dispatcher.subscribe('setGameOver', e => this.checkGameOver())
 
     window.addEventListener('focus', () => {
@@ -143,11 +145,15 @@ export class App extends Base {
     this.startScreen = new StartScreen()
   }
 
-  bestScoreScreen({ score }) {
+  createScoreScreen({ score }) {
+    this.theEndScreen = null
     this.newScoreScreen = new NewScoreScreen(score)
   }
 
   handleGetStartSettings({ playersCount, hardMode }) {
+    if (this.statsPlayers) {
+      this.statsPlayers.destroy()
+    }
     this.statsPlayers = new StatsPlayers()
     this.playersCount = playersCount
     this.hardMode = hardMode
@@ -173,8 +179,7 @@ export class App extends Base {
       if (this.level <= size(MAPS)) {
         this.levelScreen = new LevelScreen(false, this.level)
       } else {
-        // TODO: Сделать экран The End
-        this.createStartScreen()
+        this.theEndScreen = new TheEndScreen()
       }
     }
   }
@@ -212,6 +217,7 @@ export class App extends Base {
     this.gameOverScreen = null
     this.newScoreScreen = null
     this.gameOverPopup = null
+    this.theEndScreen = null
   }
 
   handleLevelCompleted() {
@@ -543,6 +549,7 @@ export class App extends Base {
     this?.sidebarStats?.update(dt, this.players, this.level)
     this?.statsScreen?.update(dt)
     this?.gameOverScreen?.update(dt, this.players)
+    this?.theEndScreen?.update(dt, this.players)
     this?.newScoreScreen?.update(dt)
   }
 
@@ -570,7 +577,8 @@ export class App extends Base {
           this.gameOverScreen,
           this.newScoreScreen,
           this.pausePopup,
-          this.gameOverPopup
+          this.gameOverPopup,
+          this.theEndScreen
         ],
         e => e && e.zindex
       ),

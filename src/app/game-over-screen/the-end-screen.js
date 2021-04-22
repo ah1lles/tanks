@@ -1,22 +1,15 @@
-import { Helper } from '../helper'
 import { MAP_SIZE_X, MAP_SIZE_Y } from '../constants'
+import { Helper } from '../helper'
 import { Base } from '../base'
-import sum from 'lodash/sum'
 import map from 'lodash/map'
+import sum from 'lodash/sum'
 
-export class GameOverScreen extends Base {
+export class TheEndScreen extends Base {
   constructor() {
     super()
 
-    this.soundLauched = false
+    this.score = 0
     this.finishing = this.after(3, () => this.compare(), null, false, true)
-  }
-
-  makeSound() {
-    if (!this.soundLauched) {
-      this.audioApi.play('playerDefeat')
-      this.soundLauched = true
-    }
   }
 
   getLastBestScore() {
@@ -42,15 +35,14 @@ export class GameOverScreen extends Base {
     }
   }
 
-  render() {
+  render(dt) {
     this.ctx.fillStyle = '#000'
     this.ctx.fillRect(0, 0, MAP_SIZE_X, MAP_SIZE_Y)
-    this.ctx.drawImage(this.assetsLoader.get('you_died'), 300, 300, 385, 237)
+    this.ctx.drawImage(this.assetsLoader.get('the_end'), 260, 370, 450, 90)
   }
 
   update(dt, players) {
     this.finishing(dt)
-    this.makeSound()
     this.countPlayersScore(players)
   }
 }

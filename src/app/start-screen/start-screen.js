@@ -21,7 +21,7 @@ export class StartScreen extends Base {
       height: TILE_SIZE * 2
     }
     this.logo = {
-      x: 250,
+      x: 230,
       y: 150,
       width: 540,
       height: 210
@@ -58,7 +58,13 @@ export class StartScreen extends Base {
   }
 
   renderLogo() {
-    this.ctx.drawImage(this.assetsLoader.get('logo'), this.logo.x, this.logo.y, this.logo.width, this.logo.height)
+    this.ctx.drawImage(
+      this.assetsLoader.get('battle_city'),
+      this.logo.x,
+      this.logo.y,
+      this.logo.width,
+      this.logo.height
+    )
   }
 
   drawBackground() {

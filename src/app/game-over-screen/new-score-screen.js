@@ -1,29 +1,42 @@
-import { ANIMATION_SPEED, MAP_SIZE_X, MAP_SIZE_Y } from '../constants'
+import { MAP_SIZE_X, MAP_SIZE_Y } from '../constants'
 import { Base } from '../base'
+import { Animation } from '../animation/animation'
+import map from 'lodash/map'
+import invokeMap from 'lodash/invokeMap'
 
 export class NewScoreScreen extends Base {
   constructor(score) {
     super()
 
-    this.speed = ANIMATION_SPEED * 3
-    this.isInfinity = true
-    this.framesCount = 8
-    this.animationTime = 0
-    this.lifeTime = 0
+    this.lifeTime = 9
     this.score = score
     this.soundLauched = false
-    this.color = 'white'
     this.finishing = this.after(9, () => this.dispatcher.dispatch('startScreen'), null, false, true)
+    this.title = new Animation(2, null, true, this.lifeTime, 200, 200, 588, 82, ['new_score_title'])
+    this.symbols = []
+    this.symbolsMap = {
+      0: { width: 78, height: 82 },
+      1: { width: 48, height: 82 },
+      2: { width: 64, height: 82 },
+      3: { width: 64, height: 82 },
+      4: { width: 80, height: 82 },
+      5: { width: 64, height: 82 },
+      6: { width: 74, height: 82 },
+      7: { width: 72, height: 82 },
+      8: { width: 74, height: 82 },
+      9: { width: 72, height: 82 }
+    }
+    this.buildSymbols()
   }
 
-  get dx() {
-    const currentFrame = Math.floor(this.animationTime) % this.framesCount
-
-    if (this.isInfinity) {
-      return currentFrame > this.framesCount ? 0 : currentFrame
-    }
-
-    return this.animationTime > this.framesCount ? this.framesCount : currentFrame
+  buildSymbols() {
+    let x = 300
+    this.symbols = map(this.score.toString().split(''), sym => {
+      const v = this.symbolsMap[sym]
+      const s = new Animation(2, null, true, this.lifeTime, x, 400, v.width, v.height, [`symbol_${sym}`])
+      x += v.width + 5
+      return s
+    })
   }
 
   makeSound() {
@@ -33,33 +46,16 @@ export class NewScoreScreen extends Base {
     }
   }
 
-  renderText(text, x, y, font) {
-    this.ctx.fillStyle = this.color
-    this.ctx.font = font || '72px sans-serif'
-    this.ctx.fillText(text, x, y)
-  }
-
-  renderTitle() {
-    this.renderText(`New Score`, 300, 200)
-  }
-
-  renderScore() {
-    this.renderText(`${this.score}`, 350, 450, '120px sans-serif')
-  }
-
   render(dt) {
-    this.animationTime += this.speed * dt
-    this.lifeTime += dt
-
-    this.color = this.dx <= 4 ? '#2735e4' : '#9f020a'
-
     this.ctx.fillStyle = '#000'
     this.ctx.fillRect(0, 0, MAP_SIZE_X, MAP_SIZE_Y)
-    this.renderTitle()
-    this.renderScore()
+    this.title.render(dt)
+    invokeMap(this.symbols, 'render', dt)
   }
 
   update(dt) {
+    this.title.update(dt)
+    invokeMap(this.symbols, 'update', dt)
     this.finishing(dt)
     this.makeSound()
   }

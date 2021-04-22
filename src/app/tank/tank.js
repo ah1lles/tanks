@@ -229,7 +229,7 @@ export class Tank extends Entity {
 
   maxUpgradeTank() {
     if (this.canTakeBonus) {
-      this.upgrade = 3
+      this.upgrade = 4
     }
   }
 
