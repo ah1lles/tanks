@@ -17,12 +17,22 @@ export class Enemy extends Tank {
     this.bulletFrom = 'enemy'
     this.idxBonusSprite = this.sprites.length - 1
     this.showBonusSprite = false
+    this.changedBehaviour = false
     this.moving = this.after(5, () => this.determineRandomDirection())
     this.shooting = this.after(0.5, () => this.shoutingDecision())
     this.bonusAnimation = this.after(0.2, () => {
       this.showBonusSprite = !this.showBonusSprite
     })
     this.deadlock = this.after(0.3, () => this.changeDirectionWhenLocked())
+    this.lifeToChangeBehaviour = this.after(
+      10,
+      () => {
+        this.changedBehaviour = !this.changedBehaviour
+      },
+      null,
+      false,
+      true
+    )
   }
 
   get idxSprite() {
@@ -54,9 +64,50 @@ export class Enemy extends Tank {
     }
   }
 
-  getNewPosition() {
+  defaultBehaviour() {
     const directionKeys = pull(keys(this.imgPositions), this.direction)
     return directionKeys[random(size(directionKeys) - 1)]
+  }
+
+  advancedBehaviour() {
+    if (this.direction === 'Up') {
+      return 'Down'
+    }
+    if (this.direction === 'Right') {
+      if (this.x < this.headquartersPosition.x) {
+        return ['Down', 'Right'][random(1)]
+      }
+      if (this.x > this.headquartersPosition.x) {
+        return ['Down', 'Left'][random(1)]
+      }
+      return ['Down', 'Right', 'Left'][random(2)]
+    }
+    if (this.direction === 'Left') {
+      if (this.x < this.headquartersPosition.x) {
+        return ['Down', 'Right'][random(1)]
+      }
+      if (this.x > this.headquartersPosition.x) {
+        return ['Down', 'Left'][random(1)]
+      }
+      return ['Down', 'Right', 'Left'][random(2)]
+    }
+    if (this.direction === 'Down') {
+      if (this.x < this.headquartersPosition.x) {
+        return 'Right'
+      }
+      if (this.x > this.headquartersPosition.x) {
+        return 'Left'
+      }
+      return ['Down', 'Right', 'Left'][random(2)]
+    }
+  }
+
+  getNewPosition() {
+    if (this.changedBehaviour && this.headquartersPosition && random(100) < 80) {
+      return this.advancedBehaviour()
+    } else {
+      return this.defaultBehaviour()
+    }
   }
 
   createBonus() {
@@ -86,7 +137,11 @@ export class Enemy extends Tank {
     this.changeDirectionWhenLocked(dt)
   }
 
-  update(dt, ...args) {
+  getHeadquartersPos(headquarters) {
+    this.headquartersPosition = headquarters ? { x: headquarters.x, y: headquarters.y } : null
+  }
+
+  update(dt, headquarters, ...args) {
     if (this.frozen) return
 
     super.update(dt, ...args)
@@ -101,6 +156,8 @@ export class Enemy extends Tank {
 
     this.moving(dt)
     this.shooting(dt)
+    this.lifeToChangeBehaviour(dt)
+    this.getHeadquartersPos(headquarters)
 
     if (this.bonus) {
       this.bonusAnimation(dt)

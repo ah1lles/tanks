@@ -489,6 +489,7 @@ export class App extends Base {
       this.enemies,
       'update',
       dt,
+      this.headquarters,
       [...this.enemies, ...filter(this.players, { destroyed: false })],
       filter(this.tiles, { passable: false, destroyed: false }),
       this.headquarters
