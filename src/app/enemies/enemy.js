@@ -80,7 +80,6 @@ export class Enemy extends Tank {
       if (this.x > this.headquartersPosition.x) {
         return ['Down', 'Left'][random(1)]
       }
-      return ['Down', 'Right', 'Left'][random(2)]
     }
     if (this.direction === 'Left') {
       if (this.x < this.headquartersPosition.x) {
@@ -89,7 +88,6 @@ export class Enemy extends Tank {
       if (this.x > this.headquartersPosition.x) {
         return ['Down', 'Left'][random(1)]
       }
-      return ['Down', 'Right', 'Left'][random(2)]
     }
     if (this.direction === 'Down') {
       if (this.x < this.headquartersPosition.x) {
@@ -98,12 +96,12 @@ export class Enemy extends Tank {
       if (this.x > this.headquartersPosition.x) {
         return 'Left'
       }
-      return ['Down', 'Right', 'Left'][random(2)]
     }
+    return this.defaultBehaviour()
   }
 
   getNewPosition() {
-    if (this.changedBehaviour && this.headquartersPosition && random(100) < 80) {
+    if (this.changedBehaviour && this.headquartersPosition && random(100) < 60) {
       return this.advancedBehaviour()
     } else {
       return this.defaultBehaviour()

@@ -39,7 +39,9 @@ export class Entity extends Base {
   }
 
   render() {
+    this.ctx.save()
     this.ctx.drawImage(...this.get())
+    this.ctx.restore()
   }
 
   destroy() {

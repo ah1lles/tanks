@@ -528,7 +528,6 @@ export class App extends Base {
     this.ctx.fillRect(0, 0, MAP_SIZE_X, MAP_SIZE_Y)
     this.ctx.fillStyle = '#000'
     this.ctx.fillRect(FIELD_START_X, FIELD_START_Y, FIELD_SIZE_X, FIELD_SIZE_Y)
-    this.ctx.save()
   }
 
   update(dt) {
@@ -589,18 +588,16 @@ export class App extends Base {
   }
 
   loop() {
-    window.requestAnimationFrame(() => {
-      const now = Date.now()
-      const dt = (now - this.lastTime) / 1000
+    const now = Date.now()
+    const dt = (now - this.lastTime) / 1000
 
-      this.update(dt)
-      this.render(dt)
+    this.update(dt)
+    this.render(dt)
 
-      this.lastTime = now
+    this.lastTime = now
 
-      if (!this.pause) {
-        this.loop()
-      }
-    })
+    if (!this.pause) {
+      window.requestAnimationFrame(() => this.loop())
+    }
   }
 }
