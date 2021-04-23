@@ -209,7 +209,7 @@ export class Player extends Tank {
     }
   }
 
-  destroy(dt) {
+  destroy() {
     if (this.indestructible) return
 
     super.destroy()
