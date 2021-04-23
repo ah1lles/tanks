@@ -139,10 +139,10 @@ export class Enemy extends Tank {
     this.headquartersPosition = headquarters ? { x: headquarters.x, y: headquarters.y } : null
   }
 
-  update(dt, headquarters, ...args) {
+  update(dt, others, tiles, headquarters) {
     if (this.frozen) return
 
-    super.update(dt, ...args)
+    super.update(dt, others, tiles, headquarters)
 
     if (!this.checkFieldEnd()) {
       this.deadlock(dt)

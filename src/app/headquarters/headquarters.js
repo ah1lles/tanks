@@ -28,7 +28,11 @@ export class Headquarters extends Entity {
     this.destroying = this.after(3, () => this.dispatcher.dispatch('headquartersDestroyed'), null, false, true)
     this.dispatchingGameOver = this.after(0.1, () => this.dispatcher.dispatch('setGameOver'), null, false, true)
 
-    this.dispatcher.subscribe('chovelBonusActivated', e => this.handleChovelBonusActivation(e.data))
+    this.handleChovelBonusActivation = ({ data }) => {
+      this.activateChovelBonus(data)
+    }
+
+    this.dispatcher.subscribe('chovelBonusActivated', this.handleChovelBonusActivation)
   }
 
   get dx() {
@@ -52,7 +56,7 @@ export class Headquarters extends Entity {
     })
   }
 
-  handleChovelBonusActivation({ limit, host }) {
+  activateChovelBonus({ limit, host }) {
     if (size(this.newHeadquartersTiles) > 0) {
       this.dispatcher.dispatch('returnBackHeadquartersTiles', {
         oldTiles: [],
@@ -104,5 +108,9 @@ export class Headquarters extends Entity {
     this.createExplosion()
     this.audioApi.play('playerDied')
     this.passable = true
+  }
+
+  resetSubscription() {
+    this.dispatcher.unsubscribe('chovelBonusActivated', this.handleChovelBonusActivation)
   }
 }

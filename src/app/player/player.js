@@ -177,6 +177,7 @@ export class Player extends Tank {
   }
 
   updateForNewLevel() {
+    this.bulletsCount = 0
     this.destroyed = true
     this.x = this.startPositionX
     this.y = this.startPositionY

@@ -78,7 +78,7 @@ export class App extends Base {
     this.gameOver = false
     this.playersOptions = {
       0: {
-        keys: { ArrowUp: 'Up', ArrowRight: 'Right', ArrowDown: 'Down', ArrowLeft: 'Left', Space: 'Attack' },
+        keys: { ArrowUp: 'Up', ArrowRight: 'Right', ArrowDown: 'Down', ArrowLeft: 'Left', Enter: 'Attack' },
         lives: this.playerLives,
         speed: PLAYER_SPEED,
         x: FIELD_START_X + TILE_SIZE * 8,
@@ -88,7 +88,7 @@ export class App extends Base {
         sprites: ['tank_1', 'tank_2', 'tank_3', 'tank_4', 'tank_5']
       },
       1: {
-        keys: { KeyW: 'Up', KeyD: 'Right', KeyS: 'Down', KeyA: 'Left', KeyQ: 'Attack' },
+        keys: { KeyW: 'Up', KeyD: 'Right', KeyS: 'Down', KeyA: 'Left', Space: 'Attack' },
         lives: this.playerLives,
         speed: PLAYER_SPEED,
         x: FIELD_START_X + TILE_SIZE * 16,
@@ -208,6 +208,7 @@ export class App extends Base {
     this.helmetOverlays = []
     this.enemyMarkers = []
     this.spawnAnimations = []
+    this.headquarters?.resetSubscription()
     this.headquarters = null
     this.statsScreen = null
     this.levelScreen?.destroy()
@@ -489,7 +490,6 @@ export class App extends Base {
       this.enemies,
       'update',
       dt,
-      this.headquarters,
       [...this.enemies, ...filter(this.players, { destroyed: false })],
       filter(this.tiles, { passable: false, destroyed: false }),
       this.headquarters
