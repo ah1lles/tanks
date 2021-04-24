@@ -25,7 +25,7 @@ export class Enemy extends Tank {
     })
     this.deadlock = this.after(0.3, () => this.changeDirectionWhenLocked())
     this.lifeToChangeBehaviour = this.after(
-      10,
+      6,
       () => {
         this.changedBehaviour = !this.changedBehaviour
       },
@@ -101,7 +101,7 @@ export class Enemy extends Tank {
   }
 
   getNewPosition() {
-    if (this.changedBehaviour && this.headquartersPosition && random(100) < 60) {
+    if (this.changedBehaviour && this.headquartersPosition && random(100) < 75) {
       return this.advancedBehaviour()
     } else {
       return this.defaultBehaviour()

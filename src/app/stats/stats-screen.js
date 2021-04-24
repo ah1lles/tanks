@@ -53,9 +53,9 @@ export class StatsScreen extends Base {
     this.idx = 0
     this.needToChangeIdx = {}
     this.bestScore = this.getBestScore()
-    this.row = this.after(1, dt => this.updateRow(dt), null, true)
-    this.pointing = this.after(0.2, () => this.updatePoints(), 0.2)
-    this.finishing = this.after(3, () => this.dispatcher.dispatch('statsScreenFinished'), null, false, true)
+    this.row = this.after(0.5, dt => this.updateRow(dt), null, true)
+    this.pointing = this.after(0.15, () => this.updatePoints(), 0.15)
+    this.finishing = this.after(2.5, () => this.dispatcher.dispatch('statsScreenFinished'), null, false, true)
   }
 
   getBestScore() {

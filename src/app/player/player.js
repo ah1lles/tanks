@@ -27,7 +27,7 @@ export class Player extends Tank {
     this.spawnAnimationCreated = false
     this.destroyed = true
     this.score = 0
-    this.pointsForFreeLife = 20000
+    this.pointsForFreeLife = 25000
     this.pointsCounter = this.pointsForFreeLife
     this.lostControls = false
     this.restore = this.after(this.restoreDelay, () => this.restorePlayer())
@@ -177,8 +177,11 @@ export class Player extends Tank {
   }
 
   updateForNewLevel() {
+    this.helmetsCount = 0
     this.bulletsCount = 0
+    this.indestructible = false
     this.destroyed = true
+    this.frozen = false
     this.x = this.startPositionX
     this.y = this.startPositionY
   }
